@@ -1,2 +1,5 @@
 # DB auth
 foodcoin.my_settings.py
+
+# secret
+secret.json
