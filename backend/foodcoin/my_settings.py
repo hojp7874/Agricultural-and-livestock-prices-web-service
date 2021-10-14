@@ -1,7 +1,7 @@
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'foodprice',
+        'NAME': 'foodcoin',
         'USER': 'jinpyo',
         'PASSWORD': 'dnleogks771',
         'HOST': 'localhost',
