@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'prices',
 
     'rest_framework',
+    'django_seed',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -78,9 +79,9 @@ WSGI_APPLICATION = 'foodcoin.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-from . import my_settings
+from . import __my_settings
 
-DATABASES = my_settings.DATABASES
+DATABASES = __my_settings.DATABASES
 
 
 # Password validation
@@ -125,3 +126,6 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTH_USER_MODEL = 'accounts.User'
