@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import View, FormView, CreateView, UpdateView, DeleteView
-from django.http import JsonResponse
+from django.contrib.auth.decorators import permission_required, login_required
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,23 +9,36 @@ from rest_framework import generics
 from .serializers import FoodSerializer, PriceSerializer, FoodCommentSerializer
 from .models import Food, Price, FoodComment
 
+from .modules.data_pipelines import Kamis
+
 # Create your views here.
-# class FoodListView(generics.ListAPIView):
-#     """
-#     /prices
-#     모든 음식 데이터 전송
-#     """
-#     queryset = Food.objects.all()
-#     serializer_class = FoodSerializer
 class FoodListView(APIView):
     """
     prices/food/
-    모든 음식 데이터 전송
     """
     def get(self, request):
+        """
+        모든 음식 데이터 전송
+        """
         foods = Food.objects.all().order_by(request.data['key'])
         serializer = FoodSerializer(foods, many=True)
         return Response(serializer.data)
+    
+    # @login_required
+    # @permission_required('admin')
+    def post(self, request):
+        """
+        데이터 파이프라이닝
+        음식 데이터 생성 및 DB최신화
+        """
+        print(request.data)
+        serializer = FoodSerializer(data={
+            'item_code': 123,
+            'name': '딸기'
+            })
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
 
 
 class PriceView(APIView):

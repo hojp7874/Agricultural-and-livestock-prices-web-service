@@ -12,8 +12,9 @@ class PriceSerializer(serializers.ModelSerializer):
 
 
 class FoodSerializer(serializers.ModelSerializer):
-    prices      = PriceSerializer(many=True)
-    like_users  = UserSerializer(many=True)
+    image       = serializers.ReadOnlyField()
+    prices      = PriceSerializer(many=True, read_only=True)
+    like_users  = UserSerializer(many=True, read_only=True)
     
     class Meta:
         model   = Food

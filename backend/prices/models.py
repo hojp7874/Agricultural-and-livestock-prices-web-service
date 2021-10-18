@@ -3,20 +3,23 @@ from django.conf import settings
 
 # Create your models here.
 class Food(models.Model):
-    item_code       = models.IntegerField(primary_key=True,max_length=3)
+    item_code       = models.IntegerField(primary_key=True)
     name            = models.CharField(unique=True,max_length=16)
     image           = models.CharField(max_length=255)
     like_users      = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='like_foods')
 
 
 class Price(models.Model):
+    # unique below zip
     food            = models.ForeignKey(Food, on_delete=models.CASCADE, related_name='prices')
-    price           = models.IntegerField()
-    date            = models.DateField()
-    kind_code       = models.IntegerField(max_length=2)
-    product_rank    = models.IntegerField(max_length=2)
+    kind_code       = models.IntegerField()
     country         = models.CharField(max_length=16)
-    product_cls     = models.IntegerField(max_length=2)
+    market          = models.CharField(max_length=16)
+    date            = models.DateField()
+
+    price           = models.IntegerField()
+    product_rank    = models.IntegerField()
+    product_cls     = models.IntegerField()
 
 
 class FoodComment(models.Model):
