@@ -9,18 +9,46 @@ from rest_framework import generics
 from .serializers import FoodSerializer, PriceSerializer, FoodCommentSerializer
 from .models import Food, Price, FoodComment
 
-from .modules.data_pipelines import Kamis
+# from .modules.data_pipelines import Kamis
+import datetime
 
-# Create your views here.
+def data_pipeline(request):
+    """
+    prices/data-pipeline/
+    """
+    foods = Food.objects.all().order_by('item_code')
+    ## Request::
+    # startday, endday
+    # productclscode
+    # itemcode
+    # productrankcode
+
+    for food in foods:
+        print(food.__dict__)
+        startday = Price.objects.latest('date') if Price.objects.exists() else datetime.date(1996, 1, 1)
+        endday = datetime.date.today()
+        days = (endday - startday).days
+        step = 3000
+        sday = startday
+        for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
+            print(sday, eday)
+            
+            sday = eday + datetime.timedelta(days=1)
+        # for day in :
+        #     pass
+        # price_serializer = PriceSerializer(food=food.pk, kind=)
+    return 1
+
+
 class FoodListView(APIView):
     """
-    prices/food/
+    prices/foods/
     """
     def get(self, request):
         """
         모든 음식 데이터 전송
         """
-        foods = Food.objects.all().order_by(request.data['key'])
+        foods = Food.objects.all().order_by(request.data['order'])
         serializer = FoodSerializer(foods, many=True)
         return Response(serializer.data)
     
@@ -41,14 +69,18 @@ class FoodListView(APIView):
             return Response(serializer.data)
 
 
-class PriceView(APIView):
+class FoodDetailView(APIView):
+    pass
+
+
+class PricesView(APIView):
     """
-    prices/food/<pk:int>/
+    prices/foods/<pk:int>/prices
     상품의 가격 정보 반환
     """
     def get(self, request, item_code):
         kind_code       = request.data['kind_code']
-        product_rank    = request.data['prpduct_rank']
+        product_rank    = request.data['product_rank']
         country         = request.data['country']
         product_cls     = request.data['product_cls']
         prices          = Price.objects.all().filter(food=item_code)

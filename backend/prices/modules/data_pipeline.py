@@ -25,7 +25,6 @@ class Kamis:
         self.request_url = 'http://www.kamis.or.kr/service/price/xml.do'
 
         code = pd.read_excel('code.xlsx', sheet_name='코드통합(부류＋품목＋품종코드)')
-        print(code.shape[1])
         for c in code.items():
             print(c)
         self.productcls_code    = {
@@ -35,34 +34,31 @@ class Kamis:
         self.item_code          = {
 
         }
-        self.kind_code          = {
-
-        }
         self.productrank_code   = {
 
         }
-        self.country_code       = {
-            '서울': 1101,
-            '부산': 2100,
-            '대구': 2200,
-            '광주': 2401,
-            '대전': 2501,
-            '인천': 2300,
-            '울산': 2601,
-            '수원': 3111,
-            '춘천': 3211,
-            '청주': 3311,
-            '전주': 3511,
-            '포항': 3711,
-            '제주': 3911,
-            '의정부': 3113,
-            '순천': 3613,
-            '안동': 3714,
-            '창원': 3814,
-            '용인': 3145
-        }
+        # self.country_code       = {
+        #     '서울': 1101,
+        #     '부산': 2100,
+        #     '대구': 2200,
+        #     '광주': 2401,
+        #     '대전': 2501,
+        #     '인천': 2300,
+        #     '울산': 2601,
+        #     '수원': 3111,
+        #     '춘천': 3211,
+        #     '청주': 3311,
+        #     '전주': 3511,
+        #     '포항': 3711,
+        #     '제주': 3911,
+        #     '의정부': 3113,
+        #     '순천': 3613,
+        #     '안동': 3714,
+        #     '창원': 3814,
+        #     '용인': 3145
+        # }
     
-    def search(self, startday, endday, productcls, item, kind, productrank, country):
+    def search(self, startday, endday, productcls, item, productrank):
         params = {
             'action':'periodProductList',
             'p_cert_key': self.__cert_key,
@@ -72,9 +68,7 @@ class Kamis:
             'p_endday': endday,
             'p_productclscode': self.productcls_code[productcls],
             'p_itemcode': self.item_code[item],
-            'p_kindcode': self.kind_code[kind],
             'p_productrankcode': self.productrank_code[productrank],
-            'p_countrycode': self.country_code[country]
         }
 
         res = get_soup(self.request_url, params)
