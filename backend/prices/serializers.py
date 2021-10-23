@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ItemCategory, Food, Kind, Country, ProductRank, ProductCls, Price, FoodComment
+from .models import ItemCategory, Food, Kind, Country, ProductRank, ProductCls, Price, FoodComment, FoodProductRanks
 from django.conf import settings
 from accounts.serializers import UserSerializer
 
@@ -8,13 +8,6 @@ class ItemCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model   = ItemCategory
-        fields  = "__all__"
-
-
-class PriceSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model   = Price
         fields  = "__all__"
 
 
@@ -49,10 +42,24 @@ class ProductRankSerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
+class FoodProductRanksSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model   = FoodProductRanks
+        fields  = "__all__"
+
+
 class ProductClsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model   = ProductCls
+        fields  = "__all__"
+
+
+class PriceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model   = Price
         fields  = "__all__"
 
 

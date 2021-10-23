@@ -6,12 +6,12 @@ class ItemCategory(models.Model):
     item_category_code  = models.IntegerField(primary_key=True)
     item_category       = models.CharField(max_length=16)
 
-    def save(self, *args, **kwargs):
-        raise Exception("This model is read only.")
+    # def save(self, *args, **kwargs):
+    #     raise Exception("This model is read only.")
 
-    def delete(self, *args, **kwargs):
-        raise Exception("This model is read only.")
-    
+    # def delete(self, *args, **kwargs):
+    #     raise Exception("This model is read only.")
+
 
 class Food(models.Model):
     item_code           = models.IntegerField(primary_key=True)
@@ -23,7 +23,7 @@ class Food(models.Model):
 
 class Kind(models.Model):
     food                = models.ForeignKey(Food, on_delete=models.CASCADE, related_name='kinds')
-    kind_code           = models.IntegerField()
+    kind_code           = models.CharField(max_length=2)
     kind                = models.CharField(max_length=16)
 
 
@@ -31,11 +31,11 @@ class Country(models.Model):
     country_code        = models.IntegerField(primary_key=True)
     country             = models.CharField(max_length=16)
 
-    def save(self, *args, **kwargs):
-        raise Exception("This model is read only.")
+    # def save(self, *args, **kwargs):
+    #     raise Exception("This model is read only.")
 
-    def delete(self, *args, **kwargs):
-        raise Exception("This model is read only.")
+    # def delete(self, *args, **kwargs):
+    #     raise Exception("This model is read only.")
 
 
 class ProductRank(models.Model):
@@ -44,15 +44,21 @@ class ProductRank(models.Model):
     product_rank        = models.CharField(max_length=8)
 
 
+class FoodProductRanks(models.Model):
+    kind                = models.ForeignKey(Kind, on_delete=models.CASCADE, related_name='product_ranks')
+    food                = models.ForeignKey(Food, on_delete=models.CASCADE, related_name='product_ranks')
+    product_rank        = models.ForeignKey(ProductRank, on_delete=models.CASCADE, related_name='foods')
+
+
 class ProductCls(models.Model):
     product_cls_code    = models.CharField(primary_key=True, max_length=2)
     product_cls         = models.CharField(max_length=2)
 
-    def save(self, *args, **kwargs):
-        raise Exception("This model is read only.")
+    # def save(self, *args, **kwargs):
+    #     raise Exception("This model is read only.")
 
-    def delete(self, *args, **kwargs):
-        raise Exception("This model is read only.")
+    # def delete(self, *args, **kwargs):
+    #     raise Exception("This model is read only.")
 
  
 class Price(models.Model):
