@@ -13,8 +13,10 @@ from rest_framework import generics
 from .serializers import CountrySerializer, FoodSerializer, ItemCategorySerializer, KindSerializer, PriceSerializer, FoodCommentSerializer, FoodProductRanksSerializer, ProductClsSerializer, ProductRankSerializer
 from .models import Country, Food, ItemCategory, Kind, Price, FoodComment, FoodProductRanks, ProductCls, ProductRank
 
-# from .modules.data_pipelines import Kamis
+from .modules import get_google_image, Kamis
+
 import datetime
+import json
 
 
 class InitDatabase(APIView):
@@ -64,7 +66,6 @@ class InitDatabase(APIView):
         for product_rank_code, grade_rank, product_rank in zip(self.rank_code_form['등급코드(p_productrankcode)'],
                                                                self.rank_code_form['등급코드(p_graderank)'],
                                                                self.rank_code_form['등급코드명']):
-            print(product_rank_code)
             serializer = ProductRankSerializer(data={'product_rank_code': product_rank_code,
                                                      'grade_rank': grade_rank,
                                                      'product_rank': product_rank})
@@ -91,8 +92,7 @@ class InitDatabase(APIView):
                 continue
         ## ------------------------------------------------------------------------
         
-            # get image rsc or save (image = '...')
-            image = 'https://upload.wikimedia.org/wikipedia/en/9/95/Test_image.jpg'
+            image = get_google_image(food)
             serializer = FoodSerializer(data={'item_code': item_code,
                                               'item_category': item_category,
                                               'food': food,
@@ -162,7 +162,7 @@ class InitDatabase(APIView):
             food_product_ranks = FoodProductRanks.objects.all()
             serializer = FoodProductRanksSerializer(food_product_ranks, many=True)
         
-        elif request.POST['mode'] == 'total':
+        elif request.POST['mode'] == 'all':
             self.init_country()
             self.init_product_cls()
             self.init_product_rank()
@@ -179,10 +179,70 @@ class InitDatabase(APIView):
         
         return Response(serializer.data)
 
+
+class DataPipeline(APIView):
+    """prices/data-pipeline/"""
+
+    def __init__(self):
+        with open('secret.json', 'r') as f:
+            __cert_key, __cert_id = json.load(f).values()
+        self.kamis = Kamis(cert_key=__cert_key, cert_id=__cert_id)
+
+    def post(self, request):
+        foods = Food.objects.all().order_by('item_code')
+        ## Request::
+        # itemcode
+        # startday, endday
+        # productrankcode
+        # productclscode
+
+        for food in foods:
+            startday = Price.objects.latest('date') if Price.objects.exists() else datetime.date(2021, 10, 21)
+            endday = datetime.date.today()
+            days = (endday - startday).days
+            step = 100
+            sday = startday
+            for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
+                # print(sday, eday)
+                productranks = food.product_ranks.all()
+                for productrankcode in productranks:
+                    for productclscode in ['01', '02']:
+
+                        params = {
+                            'p_startday': sday.__str__(),
+                            'p_endday': eday.__str__(),
+                            'p_productclscode': productclscode,
+                            'p_itemcode': food.pk,
+                            'p_productrankcode': productrankcode.product_rank_id,
+                        }
+                        print(params)
+                        response = self.kamis.get_data(params)
+                        if response == None:
+                            continue
+                        for res in response:
+                            # print(res)
+                            pass
+                        # serializer = PriceSerializer(food=food.pk,
+                        #                              kind=,
+                        #                              country=,
+                        #                              product_rank=,
+                        #                              product_cls=,
+                        #                              date=,
+                        #                              market=,
+                        #                              price=)
+                print('-'*50)
+                sday = eday + datetime.timedelta(days=1)
+            # for day in :
+            #     pass
+            # price_serializer = PriceSerializer(food=food.pk, kind=)
+            prices = Price.objects.all()
+            serializer = PriceSerializer(prices, many=True)
+        return Response(serializer.data)
+
+
 def data_pipeline(request):
-    """
-    prices/data-pipeline/
-    """
+    """prices/data-pipeline/"""
+
     foods = Food.objects.all().order_by('item_code')
     ## Request::
     # itemcode
@@ -191,7 +251,6 @@ def data_pipeline(request):
     # productclscode
 
     for food in foods:
-        # print(food.__dict__)
         startday = Price.objects.latest('date') if Price.objects.exists() else datetime.date(1996, 1, 1)
         endday = datetime.date.today()
         days = (endday - startday).days
