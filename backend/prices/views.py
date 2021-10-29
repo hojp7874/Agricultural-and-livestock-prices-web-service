@@ -10,19 +10,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import generics
 
-from .serializers import CountrySerializer, FoodSerializer, ItemCategorySerializer, KindSerializer, PriceSerializer, FoodCommentSerializer, FoodProductRanksSerializer, ProductClsSerializer, ProductRankSerializer
-from .models import Country, Food, ItemCategory, Kind, Price, FoodComment, FoodProductRanks, ProductCls, ProductRank
+from .serializers import CountrySerializer, FoodSerializer, ItemCategorySerializer, KindSerializer, PriceSerializer, FoodCommentSerializer, FoodProductRanksSerializer, ProductClsSerializer, ProductRankSerializer, UnitSerializer
+from .models import Country, Food, ItemCategory, Kind, Price, FoodComment, FoodProductRanks, ProductCls, ProductRank, Unit
 
-from .modules import get_google_image, Kamis
+from .modules import Scrap
 
 import datetime
 import json
+
+import timeit
 
 
 class InitDatabase(APIView):
     """
     KAMIS 규칙에 따라 데이터베이스를 초기화 합니다.
     부류, 품목, 품종, 등급 테이블 및 지역, 도/소매 테이블이 영향을 받습니다.
+
+    request 시 body에 mode를 요청해야합니다.
+    사용 가능한 mode는 다음과 같습니다.
+    ('country', 'productcls', 'productrank', 'itemcategory', 'food', 'kind', 'foodproductranks', 'all')
     """
 
     def __init__(self):
@@ -48,10 +54,20 @@ class InitDatabase(APIView):
                      '울산': 2601, '수원': 3111, '춘천': 3211, 
                      '청주': 3311, '전주': 3511, '포항': 3711,
                      '제주': 3911, '순천': 3613, '안동': 3714,
-                     '창원': 3814, '용인': 3145, '의정부': 3113}
+                     '창원': 3814, '용인': 3145, '의정부': 3113,
+                     '세종': 2701, '강릉': 3214}
+                     # (세종, 강릉)은 홈페이지에 최신화 안되어있음.
+                     # 충주, 목포, 마산 등 country code가 등록되어있지 않은 지역구가 존재함.
         
         for country, country_code in countries.items():
             serializer = CountrySerializer(data={'country_code': country_code, 'country': country})
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+    
+    def init_unit(self):
+        units = ['kg', '포기', '개', '리터', '마리', '장', '속', '접']
+        for unit in units:
+            serializer = UnitSerializer(data={'unit': unit})
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
@@ -85,18 +101,20 @@ class InitDatabase(APIView):
         # for item_category, item_code, food in zip(self.item_code_form['부류코드'],
         #                                           self.item_code_form['품목코드'],
         #                                           self.item_code_form['품목명']):
-        for item_code, food in zip(self.kind_code_form['품목 코드'],
-                                   self.kind_code_form['품목명']):
+
+        foods   = [food for food in self.kind_code_form['품목명']]
+        scrap   = Scrap()
+        images  = scrap.get_google_images(foods)
+
+        for idx, item_code in enumerate(self.kind_code_form['품목 코드']):
             item_category = item_code // 100 * 100
             if Food.objects.filter(item_code=item_code):
                 continue
-        ## ------------------------------------------------------------------------
-        
-            image = get_google_image(food)
+
             serializer = FoodSerializer(data={'item_code': item_code,
                                               'item_category': item_category,
-                                              'food': food,
-                                              'image': image})
+                                              'food': foods[idx],
+                                              'image': images[idx]})
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
@@ -110,13 +128,13 @@ class InitDatabase(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
 
-    def init_foodproductranks(self):
+    def init_food_product_ranks(self):
         for food, kind_code, *product_ranks in zip(self.kind_code_form['품목 코드'],
-                                              self.kind_code_form['품종코드'],
-                                              self.kind_code_form['도매 등급'],
-                                              self.kind_code_form['소매 등급'],
-                                              self.kind_code_form["친환경 등급('05~'20.3)"],
-                                              self.kind_code_form["친환경 등급('20.4~)"]):
+                                                   self.kind_code_form['품종코드'],
+                                                   self.kind_code_form['도매 등급'],
+                                                   self.kind_code_form['소매 등급'],
+                                                   self.kind_code_form["친환경 등급('05~'20.3)"],
+                                                   self.kind_code_form["친환경 등급('20.4~)"]):
             kind = Kind.objects.get(food=food, kind_code=kind_code).pk
             product_ranks = ','.join((rank for rank in product_ranks if type(rank) == str))
             for product_rank in set(product_ranks.split(',')):
@@ -127,150 +145,213 @@ class InitDatabase(APIView):
                     serializer.save()
 
     def post(self, request):
+        start = timeit.default_timer()
+
         if request.POST['mode'] == 'country':
             self.init_country()
-            countries = Country.objects.all()
-            serializer = CountrySerializer(countries, many=True)
+            countries           = Country.objects.all()
+            serializer          = CountrySerializer(countries, many=True)
+        
+        elif request.POST['mode'] == 'unit':
+            self.init_unit()
+            unit                = Unit.objects.all()
+            serializer          = UnitSerializer(unit, many=True)
         
         elif request.POST['mode'] == 'productcls':
             self.init_product_cls()
-            product_cls = ProductCls.objects.all()
-            serializer = ProductClsSerializer(product_cls, many=True)
+            product_cls         = ProductCls.objects.all()
+            serializer          = ProductClsSerializer(product_cls, many=True)
         
         elif request.POST['mode'] == 'productrank':
             self.init_product_rank()
-            product_ranks = ProductRank.objects.all()
-            serializer = ProductRankSerializer(product_ranks, many=True)
+            product_ranks       = ProductRank.objects.all()
+            serializer          = ProductRankSerializer(product_ranks, many=True)
 
         elif request.POST['mode'] == 'itemcategory':
             self.init_item_category()
-            item_categories = ItemCategory.objects.all()
-            serializer = ItemCategorySerializer(item_categories, many=True)
+            item_categories     = ItemCategory.objects.all()
+            serializer          = ItemCategorySerializer(item_categories, many=True)
         
         elif request.POST['mode'] == 'food':
             self.init_food()
-            foods = Food.objects.all()
-            serializer = FoodSerializer(foods, many=True)
+            foods               = Food.objects.all()
+            serializer          = FoodSerializer(foods, many=True)
 
         elif request.POST['mode'] == 'kind':
             self.init_kind()
-            kinds = Kind.objects.all()
-            serializer = KindSerializer(kinds, many=True)
+            kinds               = Kind.objects.all()
+            serializer          = KindSerializer(kinds, many=True)
 
         elif request.POST['mode'] == 'foodproductranks':
             self.init_foodproductranks()
-            food_product_ranks = FoodProductRanks.objects.all()
-            serializer = FoodProductRanksSerializer(food_product_ranks, many=True)
+            food_product_ranks  = FoodProductRanks.objects.all()
+            serializer          = FoodProductRanksSerializer(food_product_ranks, many=True)
         
         elif request.POST['mode'] == 'all':
             self.init_country()
+            self.init_unit()
             self.init_product_cls()
             self.init_product_rank()
             self.init_item_category()
             self.init_food()
             self.init_kind()
-            self.init_foodproductranks()
-            response = {'success': 'Every table is init!'}
+            self.init_food_product_ranks()
+            response = {'success': 'Every tables are init!'}
+
+            duration = timeit.default_timer() - start
+            print('Total Running Time:', duration)
             return JsonResponse(response)
         
         else:
             response = {'error': 'Invalid request body.'}
+
             return JsonResponse(response)
-        
+            
+        duration = timeit.default_timer() - start
+        print('Total Running Time:', duration)
         return Response(serializer.data)
+    
+    def delete(self, request):
+        """테이블 내용 삭제"""
+
+        FoodProductRanks.objects.all().delete()
+        Kind.objects.all().delete()
+        Food.objects.all().delete()
+        ItemCategory.objects.all().delete()
+        ProductRank.objects.all().delete()
+        ProductCls.objects.all().delete()
+        Unit.objects.all().delete()
+        Country.objects.all().delete()
+
+        response = {'success': 'Every tables are deleted.'}
+        return JsonResponse(response)
 
 
 class DataPipeline(APIView):
     """prices/data-pipeline/"""
 
     def __init__(self):
+        self.scrap = Scrap()
         with open('secret.json', 'r') as f:
             __cert_key, __cert_id = json.load(f).values()
-        self.kamis = Kamis(cert_key=__cert_key, cert_id=__cert_id)
+        self.scrap.kamis_setting(cert_key=__cert_key, cert_id=__cert_id)
+        self.new_country_code = self.country_code_generator()
+    
+    def country_code_generator(self):
+        country_code            = 0
+        defined_country_codes   = Country.objects.values_list('country_code')
+        while True:
+            country_code += 1
+            if (country_code,) in defined_country_codes:
+                continue
+            yield country_code
 
+    def insert_undefined_country(self, country):
+        country_code = next(self.new_country_code)
+        Country.objects.create(country_code=country_code, country=country)
+        print(f"country: '{country}' is created. (country_code={country_code})")
+        return country_code
+    
+    def insert_prices(self, params_list, responses):
+        print(f"Inserting Prices Data...")
+
+        for idx, response in enumerate(responses):
+            if response == None: continue
+
+            for item in response:
+                if item['countyname'] in ('평균', '평년'): continue
+
+                try:
+                    food         = params_list[idx]['p_itemcode']
+                    product_rank = params_list[idx]['p_productrankcode']
+                    product_cls  = params_list[idx]['p_productclscode']
+                    *kind, unit  = item['kindname'].split('(')
+                    kind_name    = '('.join(kind) if type(kind) == list else kind
+                    kind         = Kind.objects.get(kind=kind_name, food=food).pk
+                    unit         = unit[1:-1]
+                    country      = Country.objects.get(country=item['countyname']).pk \
+                                     if Country.objects.filter(country=item['countyname']).exists() \
+                                     else self.insert_undefined_country(item['countyname'])
+                    date         = item['yyyy'] + '-' + item['regday'].replace('/', '-')
+                    market       = item['marketname']
+                    price        = int(item['price'].replace(',', '')) if item['price'].replace(',', '').isdigit() else -1
+
+                    data         = {'food'          : food,
+                                    'product_rank'  : product_rank,
+                                    'product_cls'   : product_cls,
+                                    'kind'          : kind,
+                                    'unit'          : unit,
+                                    'country'       : country,
+                                    'date'          : date,
+                                    'market'        : market,
+                                    'price'         : price}
+
+                    serializer = PriceSerializer(data=data)
+                    if serializer.is_valid(raise_exception=True):
+                        serializer.save()
+                except Exception as e:
+                    print('Serializer Error:', e)
+                    print('Params:', params_list[idx])
+                    print('Item:', item)
+                    print('-'*50)
+        print('...OK')
+
+    # @login_required
+    # @permission_required('admin')
     def post(self, request):
-        foods = Food.objects.all().order_by('item_code')
-        ## Request::
-        # itemcode
-        # startday, endday
-        # productrankcode
-        # productclscode
+        """
+        # Request::
+        itemcode, productrankcode (247)
+            startday, endday (1996.1.1 ~ 2021.12.31 per 100 => t95)
+                productclscode (2)
+        # Total:: 46,930 request
+        """
 
-        for food in foods:
-            startday = Price.objects.latest('date') if Price.objects.exists() else datetime.date(2021, 10, 21)
-            endday = datetime.date.today()
-            days = (endday - startday).days
-            step = 100
-            sday = startday
+        start = timeit.default_timer()
+
+        food_product_ranks  = FoodProductRanks.objects.values('food', 'product_rank').distinct()
+        # startday    = datetime.date(2021, 10, 28)
+        startday    = Price.objects.latest('date').date if Price.objects.exists() else datetime.date(1996, 1, 1)
+        endday      = datetime.date.today()
+        days        = (endday - startday).days
+        step        = 100
+        params_list = []
+        params      = {}
+        for food_product_rank in food_product_ranks:
+            sday            = startday
+            food            = food_product_rank['food']
+            product_rank    = food_product_rank['product_rank']
+            print('{:=^30}'.format(Food.objects.get(item_code=food).food +'/'+ 
+                                   ProductRank.objects.get(product_rank_code=product_rank).product_rank))
+
+            params['p_itemcode']        = food
+            params['p_productrankcode'] = product_rank
             for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
-                # print(sday, eday)
-                productranks = food.product_ranks.all()
-                for productrankcode in productranks:
-                    for productclscode in ['01', '02']:
-
-                        params = {
-                            'p_startday': sday.__str__(),
-                            'p_endday': eday.__str__(),
-                            'p_productclscode': productclscode,
-                            'p_itemcode': food.pk,
-                            'p_productrankcode': productrankcode.product_rank_id,
-                        }
-                        print(params)
-                        response = self.kamis.get_data(params)
-                        if response == None:
-                            continue
-                        for res in response:
-                            # print(res)
-                            pass
-                        # serializer = PriceSerializer(food=food.pk,
-                        #                              kind=,
-                        #                              country=,
-                        #                              product_rank=,
-                        #                              product_cls=,
-                        #                              date=,
-                        #                              market=,
-                        #                              price=)
-                print('-'*50)
+                print(f"{sday} ~ {eday}")
+                params['p_startday']    = sday.__str__()
+                params['p_endday']      = eday.__str__()
+                for product_cls in ('01', '02'):
+                    params['p_productclscode'] = product_cls
+                    params_list.append(params)
+                    if len(params_list) >= 100:
+                        responses = self.scrap.get_kamis_datas(params_list)
+                        self.insert_prices(params_list, responses)
+                        params_list = []
                 sday = eday + datetime.timedelta(days=1)
-            # for day in :
-            #     pass
-            # price_serializer = PriceSerializer(food=food.pk, kind=)
-            prices = Price.objects.all()
-            serializer = PriceSerializer(prices, many=True)
-        return Response(serializer.data)
+        if params_list != []:
+            responses = self.scrap.get_kamis_datas(params_list)
+            self.insert_prices(params_list, responses)
 
+        duration = timeit.default_timer() - start
+        print('Total Running Time:', duration)
 
-def data_pipeline(request):
-    """prices/data-pipeline/"""
-
-    foods = Food.objects.all().order_by('item_code')
-    ## Request::
-    # itemcode
-    # startday, endday
-    # productrankcode
-    # productclscode
-
-    for food in foods:
-        startday = Price.objects.latest('date') if Price.objects.exists() else datetime.date(1996, 1, 1)
-        endday = datetime.date.today()
-        days = (endday - startday).days
-        step = 3000
-        sday = startday
-        for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
-            # print(sday, eday)
-            food_product_ranks = food.product_ranks
-            print(food_product_ranks)
-            sday = eday + datetime.timedelta(days=1)
-        # for day in :
-        #     pass
-        # price_serializer = PriceSerializer(food=food.pk, kind=)
-    return 1
+        response = {'success': 'Data has been updated.'}
+        return JsonResponse(response)
 
 
 class FoodListView(APIView):
-    """
-    prices/foods/
-    """
+    """prices/foods/"""
+
     def get(self, request):
         """
         모든 음식 데이터 전송
@@ -278,22 +359,6 @@ class FoodListView(APIView):
         foods = Food.objects.all().order_by(request.data['order'])
         serializer = FoodSerializer(foods, many=True)
         return Response(serializer.data)
-    
-    # @login_required
-    # @permission_required('admin')
-    def post(self, request):
-        """
-        데이터 파이프라이닝
-        음식 데이터 생성 및 DB최신화
-        """
-        print(request.data)
-        serializer = FoodSerializer(data={
-            'item_code': 123,
-            'name': '딸기'
-            })
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data)
 
 
 class FoodDetailView(APIView):
@@ -301,10 +366,9 @@ class FoodDetailView(APIView):
 
 
 class PricesView(APIView):
-    """
-    prices/foods/<pk:int>/prices
-    상품의 가격 정보 반환
-    """
+    """prices/foods/<pk:int>/prices
+    상품의 가격 정보 반환"""
+
     def get(self, request, item_code):
         kind_code       = request.data['kind_code']
         product_rank    = request.data['product_rank']
