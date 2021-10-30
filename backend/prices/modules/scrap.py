@@ -2,6 +2,18 @@ from bs4 import BeautifulSoup
 import requests
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import timeit
+
+
+def duration(func):
+    def inner(*args):
+        print(f"{func.__name__.upper()}...")
+        start = timeit.default_timer()
+        result = func(*args)
+        print('Running Time:', timeit.default_timer() - start)
+        return result
+    return inner
+
 
 class Scrap:
 
@@ -54,7 +66,8 @@ class Scrap:
     def urlmaker(self, params):
         return self.url + '?' + '&'.join(f'{key}={value}' for key, value in params.items())
     
-    def get_kamis_datas(self, params_var_list: dict):
+    @duration
+    def get_kamis_data(self, params_var_list: dict):
         """
         kamis api로 요청을 보냅니다.
 
@@ -64,8 +77,6 @@ class Scrap:
         선택 params는 다음과 같습니다.
         p_itemcategorycode, p_kindcode, p_countrycode, p_convert_kg_yn
         """
-
-        print('Getting Kamis Data...')
 
         params_const = {
             'action'          : self.action,
@@ -78,7 +89,6 @@ class Scrap:
         urls        = map(self.urlmaker, params_list)
         result      = self.loop.run_until_complete(self.main(mode='kamis', urls=urls))
         
-        print('...OK')
         return result
 
 
@@ -96,4 +106,4 @@ if __name__ == "__main__":
                 '세종': 2701, '강릉': 3214}
     for country in countries.values():
         test_range.remove(country)
-    print(scrap.get_kamis_datas([{'p_startday': '2021-10-27', 'p_endday': '2021-10-28', 'p_productclscode': '01', 'p_itemcode': 111, 'p_productrankcode': '04', 'p_countrycode': countrycode} for countrycode in test_range]))
+    print(scrap.get_kamis_data([{'p_startday': '2021-10-27', 'p_endday': '2021-10-28', 'p_productclscode': '01', 'p_itemcode': 111, 'p_productrankcode': '04', 'p_countrycode': countrycode} for countrycode in test_range]))
