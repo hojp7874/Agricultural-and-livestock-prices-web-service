@@ -1,12 +1,12 @@
 <template>
   <div>
-    <chart-page/>
+    <Chart/>
     <Table :items="items"/>
   </div>
 </template>
 
 <script>
-import ChartPage from '../components/ChartPage.vue'
+import Chart from '../components/Chart.vue'
 import Table from '../components/Table.vue'
 import axios from 'axios'
 
@@ -16,33 +16,25 @@ export default {
   name: 'FoodChart',
   components: {
     Table,
-    ChartPage
+    Chart
   },
-  data: function() {
+  data() {
     return {
       items: Object
     }
   },
-  // computed: {
-  //   foods: function() {
-  //     return 
-  //   }
-  // },
   methods: {
-    get_foods: function() {
-      axios.get(`${SERVER_URL}/prices/foods/`)
+    get_foods() {
+      axios.get(`${SERVER_URL}/prices/food-table/`)
         .then((res) => {
-          console.log(res)
           this.items = res.data
-          console.log(this.items)
         })
         .catch((err) => {
           console.log(err)
         })
-      return 'test'
     }
   },
-  created: function() {
+  created() {
     this.get_foods()
   }
 }

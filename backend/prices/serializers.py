@@ -13,6 +13,7 @@ class ItemCategorySerializer(serializers.ModelSerializer):
 class FoodSerializer(serializers.ModelSerializer):
     # prices      = PriceSerializer(many=True, read_only=True)
     like_users  = UserSerializer(many=True, read_only=True)
+    item_category = ItemCategorySerializer()
 
     class Meta:
         model   = Food

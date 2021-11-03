@@ -327,7 +327,6 @@ class DataPipeline(APIView):
                     params_list.append(deepcopy(params))
                     if len(params_list) >= 100:
                         responses = self.scrap.get_kamis_data(params_list)
-                        # print(responses)
                         self.insert_prices(params_list, responses)
                         params_list = []
                 sday = eday + datetime.timedelta(days=1)
@@ -354,7 +353,7 @@ class FoodListView(APIView):
         """
         모든 음식 데이터 전송
         """
-        foods = Food.objects.all().order_by(request.data['order'])
+        foods = Food.objects.all()#.order_by(request.data['order'])
         serializer = FoodSerializer(foods, many=True)
         return Response(serializer.data)
 
@@ -368,10 +367,20 @@ class PricesView(APIView):
     상품의 가격 정보 반환"""
 
     def get(self, request, item_code):
-        kind_code       = request.data['kind_code']
-        product_rank    = request.data['product_rank']
-        country         = request.data['country']
-        product_cls     = request.data['product_cls']
-        prices          = Price.objects.all().filter(food=item_code)
+        req = {key:value for key, value in request.GET.items()}
+        prices          = Price.objects.filter(food=item_code, **req).order_by('-date')
         serializer      = PriceSerializer(prices, many=True)
+        print(serializer.data)
         return Response(serializer.data)
+
+
+@require_http_methods(['GET'])
+@duration
+def food_table(request):
+    foods = Food.objects.values('item_code', 'food')
+    for food in foods:
+        try:
+            food.setdefault('price', Price.objects.filter(food=food['item_code']).latest('id').price)
+        except:
+            food.setdefault('price', '-')
+    return JsonResponse(list(foods), safe=False)
