@@ -13,7 +13,7 @@ from rest_framework import generics
 from .serializers import CountrySerializer, FoodSerializer, ItemCategorySerializer, KindSerializer, PriceSerializer, FoodCommentSerializer, FoodProductRanksSerializer, ProductClsSerializer, ProductRankSerializer, UnitSerializer
 from .models import Country, Food, ItemCategory, Kind, Price, FoodComment, FoodProductRanks, ProductCls, ProductRank, Unit
 
-from .modules import Scrap, duration
+from .modules import Scrap, duration, logging
 
 import datetime
 import json
@@ -249,7 +249,7 @@ class DataPipeline(APIView):
     def insert_undefined_country(self, country):
         country_code = next(self.new_country_code)
         Country.objects.create(country_code=country_code, country=country)
-        print(f"country: '{country}' is created. (country_code={country_code})")
+        logging.info(f"Country '{country}' is created. (country_code={country_code})")
         return country_code
     
     @duration
@@ -259,7 +259,7 @@ class DataPipeline(APIView):
         price = Price()
 
         for idx, response in enumerate(responses):
-            print(f'Prograss: {idx}%')
+            logging.info(f'Prograss... {idx}%')
             if response == None: continue
 
 
@@ -286,10 +286,11 @@ class DataPipeline(APIView):
         try:
             Price.objects.bulk_create(data_list)
         except Exception as e:
-            print('Serializer Error:', e)
+            logging.info(f"Serializer Error: {e}")
 
     # @login_required
     # @permission_required('admin')
+    @duration
     def post(self, request):
         """
         # Request::
@@ -299,8 +300,6 @@ class DataPipeline(APIView):
         # Total:: 46,930 request
         """
 
-        start = timeit.default_timer()
-
         food_product_ranks  = FoodProductRanks.objects.values('food', 'product_rank').distinct()
         # startday    = datetime.date(2021, 10, 28)
         startday    = Price.objects.latest('date').date if Price.objects.exists() else datetime.date(1996, 1, 1)
@@ -309,33 +308,37 @@ class DataPipeline(APIView):
         step        = 100
         params_list = []
         params      = {}
+
         for food_product_rank in food_product_ranks:
             sday            = startday
             food            = food_product_rank['food']
             product_rank    = food_product_rank['product_rank']
-            print('{:=^30}'.format(Food.objects.get(item_code=food).food +'/'+ 
-                                   ProductRank.objects.get(product_rank_code=product_rank).product_rank))
+            logging.info('{:=^30}'.format(Food.objects.get(item_code=food).food +'/'+ 
+                                          ProductRank.objects.get(product_rank_code=product_rank).product_rank))
 
             params['p_itemcode']        = food
             params['p_productrankcode'] = product_rank
+
             for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
-                print(f"{sday} ~ {eday}")
+                logging.info(f"{sday} ~ {eday}")
                 params['p_startday']    = sday.__str__()
                 params['p_endday']      = eday.__str__()
+
                 for product_cls in ('01', '02'):
                     params['p_productclscode'] = product_cls
                     params_list.append(deepcopy(params))
+
                     if len(params_list) >= 100:
                         responses = self.scrap.get_kamis_data(params_list)
+                        print(responses)
                         self.insert_prices(params_list, responses)
                         params_list = []
+
                 sday = eday + datetime.timedelta(days=1)
+
         if params_list != []:
             responses = self.scrap.get_kamis_data(params_list)
             self.insert_prices(params_list, responses)
-
-        duration = timeit.default_timer() - start
-        print('Total Running Time:', duration)
 
         response = {'success': 'Data has been updated.'}
         return JsonResponse(response)

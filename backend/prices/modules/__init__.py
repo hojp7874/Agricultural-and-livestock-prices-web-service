@@ -1,1 +1,1 @@
-from .scrap import Scrap, duration
+from .scrap import Scrap, duration, logging
