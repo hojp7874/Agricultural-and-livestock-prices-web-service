@@ -35,8 +35,8 @@ class Scrap:
 
     async def _get_google_image(self, session, search_text):
         url = f"https://www.google.com/search?q={search_text}&tbm=isch"
-        async with session.get(url) as res:
-            if res.status != 200: return None
+        async with session.get(url) as res: # 429 (Too many requests) 발생할 수 있음.
+            if res.status != 200: return None.status
             res_content = await res.text()
             soup = BeautifulSoup(res_content, 'html.parser')
             image = soup.find("img", {"class": "yWs4tf"}).get('src')
@@ -113,16 +113,16 @@ class Scrap:
 
 if __name__ == "__main__":
     scrap = Scrap()
-    # print(scrap.get_google_images(['사과', '딸기', '복숭아']))
-    scrap.kamis_setting('1', '1')
-    test_range = list(range(1000, 4000))
-    countries = {'서울': 1101, '부산': 2100, '대구': 2200,
-                 '광주': 2401, '대전': 2501, '인천': 2300,
-                 '울산': 2601, '수원': 3111, '춘천': 3211, 
-                 '청주': 3311, '전주': 3511, '포항': 3711,
-                 '제주': 3911, '순천': 3613, '안동': 3714,
-                 '창원': 3814, '용인': 3145, '의정부': 3113,
-                 '세종': 2701, '강릉': 3214}
-    for country in countries.values():
-        test_range.remove(country)
-    print(scrap.get_kamis_data([{'p_startday': '2021-10-27', 'p_endday': '2021-10-28', 'p_productclscode': '01', 'p_itemcode': 111, 'p_productrankcode': '04', 'p_countrycode': countrycode} for countrycode in test_range]))
+    print(scrap.get_google_images(['사과', '딸기', '복숭아']))
+    # scrap.kamis_setting('1', '1')
+    # test_range = list(range(1000, 4000))
+    # countries = {'서울': 1101, '부산': 2100, '대구': 2200,
+    #              '광주': 2401, '대전': 2501, '인천': 2300,
+    #              '울산': 2601, '수원': 3111, '춘천': 3211, 
+    #              '청주': 3311, '전주': 3511, '포항': 3711,
+    #              '제주': 3911, '순천': 3613, '안동': 3714,
+    #              '창원': 3814, '용인': 3145, '의정부': 3113,
+    #              '세종': 2701, '강릉': 3214}
+    # for country in countries.values():
+    #     test_range.remove(country)
+    # print(scrap.get_kamis_data([{'p_startday': '2021-10-27', 'p_endday': '2021-10-28', 'p_productclscode': '01', 'p_itemcode': 111, 'p_productrankcode': '04', 'p_countrycode': countrycode} for countrycode in test_range]))

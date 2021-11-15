@@ -109,6 +109,7 @@ class InitDatabase(APIView):
         foods   = [food for food in self.kind_code_form['품목명']]
         scrap   = Scrap()
         images  = scrap.get_google_images(foods)
+        print(images)
 
         for idx, item_code in enumerate(self.kind_code_form['품목 코드']):
             item_category = item_code // 100 * 100
@@ -119,6 +120,7 @@ class InitDatabase(APIView):
                                               'item_category': item_category,
                                               'food': foods[idx],
                                               'image': images[idx]})
+            print(serializer)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
