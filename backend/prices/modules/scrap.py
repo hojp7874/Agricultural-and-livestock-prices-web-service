@@ -35,8 +35,11 @@ class Scrap:
 
     async def _get_google_image(self, session, search_text):
         url = f"https://www.google.com/search?q={search_text}&tbm=isch"
-        async with session.get(url) as res: # 429 (Too many requests) 발생할 수 있음.
-            if res.status != 200: return None.status
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0'
+        }
+        async with session.get(url, headers=headers) as res: # 429 (Too many requests) 발생할 수 있음.
+            if res.status != 200: return None
             res_content = await res.text()
             soup = BeautifulSoup(res_content, 'html.parser')
             image = soup.find("img", {"class": "yWs4tf"}).get('src')
@@ -44,8 +47,8 @@ class Scrap:
 
 
     async def _get_google_images(self, search_texts):
-        images = []
         async with aiohttp.ClientSession() as session:
+            images = []
             for search_text in search_texts:
                 image = asyncio.ensure_future(self._get_google_image(session, search_text))
                 images.append(image)
