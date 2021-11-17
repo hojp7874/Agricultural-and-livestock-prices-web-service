@@ -94,7 +94,7 @@ class Scrap:
         async with aiohttp.ClientSession() as session:
             all_kamis_data = []
             for params_var in params_var_list:
-                kamis_data = self._get_kamis_data(session, params_var)
+                kamis_data = asyncio.ensure_future(self._get_kamis_data(session, params_var))
                 all_kamis_data.append(kamis_data)
             return await asyncio.gather(*all_kamis_data, return_exceptions=True)
 

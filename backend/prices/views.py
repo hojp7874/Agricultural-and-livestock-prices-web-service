@@ -50,6 +50,7 @@ class InitDatabase(APIView):
         rank_codes = rank_codes.apply(lambda x: "{:0>2s}".format(x))
         self.rank_code_form['등급코드(p_productrankcode)'] = rank_codes
 
+
     @duration
     def init_country(self):
         countries = {'서울': 1101, '부산': 2100, '대구': 2200,
@@ -67,6 +68,7 @@ class InitDatabase(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
+
     @duration
     def init_unit(self):
         units = ['kg', '포기', '개', '리터', '마리', '장', '속', '접']
@@ -75,6 +77,7 @@ class InitDatabase(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
+
     @duration
     def init_product_cls(self):
         for product_cls_code, product_cls in (('01', '소매'), ('02', '도매')):
@@ -83,6 +86,7 @@ class InitDatabase(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
+
     @duration
     def init_product_rank(self):
         for product_rank_code, grade_rank, product_rank in zip(self.rank_code_form['등급코드(p_productrankcode)'],
@@ -94,6 +98,7 @@ class InitDatabase(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
+
     @duration
     def init_item_category(self):
         for item_category_code, item_category in zip(self.item_category_code_form['부류코드'],
@@ -103,13 +108,13 @@ class InitDatabase(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
 
+
     @duration
     def init_food(self):
         # excel 파일 품목표가 최신화가 되어있지 않아 품종표로 대체함.
         foods   = [food for food in self.kind_code_form['품목명']]
         scrap   = Scrap()
         images  = scrap.get_google_images(foods)
-        print(images)
 
         for idx, item_code in enumerate(self.kind_code_form['품목 코드']):
             item_category = item_code // 100 * 100
@@ -120,10 +125,10 @@ class InitDatabase(APIView):
                                               'item_category': item_category,
                                               'food': foods[idx],
                                               'image': images[idx]})
-            print(serializer)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
     
+
     @duration
     def init_kind(self):
         for food, kind_code, kind in zip(self.kind_code_form['품목 코드'],
@@ -134,6 +139,7 @@ class InitDatabase(APIView):
                                               'kind': kind})
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
+
 
     @duration
     def init_food_product_ranks(self):
@@ -151,6 +157,7 @@ class InitDatabase(APIView):
                                                               'product_rank': product_rank})
                 if serializer.is_valid(raise_exception=True):
                     serializer.save()
+
 
     def post(self, request):
         if request.POST['mode'] == 'country':
@@ -210,8 +217,9 @@ class InitDatabase(APIView):
             response = {'error': 'Invalid request body.'}
 
             return JsonResponse(response)
-            
+
         return Response(serializer.data)
+    
     
     def delete(self, request):
         """테이블 내용 삭제"""
@@ -239,6 +247,7 @@ class DataPipeline(APIView):
         self.scrap.kamis_setting(cert_key=__cert_key, cert_id=__cert_id)
         self.new_country_code = self.country_code_generator()
     
+
     def country_code_generator(self):
         country_code            = 0
         defined_country_codes   = Country.objects.values_list('country_code')
@@ -248,12 +257,14 @@ class DataPipeline(APIView):
                 continue
             yield country_code
 
+
     def insert_undefined_country(self, country):
         country_code = next(self.new_country_code)
         Country.objects.create(country_code=country_code, country=country)
         logging.info(f"Country '{country}' is created. (country_code={country_code})")
         return country_code
     
+
     @duration
     def insert_prices(self, params_list, responses):
 
@@ -289,6 +300,7 @@ class DataPipeline(APIView):
             Price.objects.bulk_create(data_list)
         except Exception as e:
             logging.info(f"Serializer Error: {e}")
+
 
     # @login_required
     # @permission_required('admin')
@@ -332,7 +344,6 @@ class DataPipeline(APIView):
 
                     if len(params_list) >= 100:
                         responses = self.scrap.get_kamis_data(params_list)
-                        print(responses)
                         self.insert_prices(params_list, responses)
                         params_list = []
 
@@ -345,6 +356,7 @@ class DataPipeline(APIView):
         response = {'success': 'Data has been updated.'}
         return JsonResponse(response)
     
+
     def delete(self, request):
         result = Price.objects.all().delete()
         response = {'success': f'{result[0]} Price data has been deleted.'}
@@ -375,7 +387,6 @@ class PricesView(APIView):
         req = {key:value for key, value in request.GET.items()}
         prices          = Price.objects.filter(food=item_code, **req).order_by('-date')
         serializer      = PriceSerializer(prices, many=True)
-        print(serializer.data)
         return Response(serializer.data)
 
 
