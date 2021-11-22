@@ -268,38 +268,45 @@ class DataPipeline(APIView):
     @duration
     def insert_prices(self, params_list, responses):
 
-        data_list = []
         price = Price()
+        countries = Country.objects.all()
 
         for idx, response in enumerate(responses):
             logging.info(f'Prograss... {idx}%')
             if response == None: continue
-
+            data_list = []
 
             price.food_id = food    = params_list[idx]['p_itemcode']
             price.product_rank_id   = params_list[idx]['p_productrankcode']
             price.product_cls_id    = params_list[idx]['p_productclscode']
+
+            kinds = Kind.objects.filter(food=food)
 
             for item in response:
                 if item['countyname'] in ('평균', '평년'): continue
 
                 *kind, unit         = item['kindname'].split('(')
                 kind_name           = '('.join(kind) if type(kind) == list else kind
-                price.kind_id       = Kind.objects.get(kind=kind_name, food=food).pk
+                price.kind_id       = kinds.get(kind=kind_name).pk
                 price.unit_id       = unit[1:-1]
-                price.country_id    = Country.objects.get(country=item['countyname']).pk \
-                                        if Country.objects.filter(country=item['countyname']).exists() \
-                                        else self.insert_undefined_country(item['countyname'])
+
+                country             = countries.filter(country=item['countyname'])
+                if country.exists():
+                    price.country_id = country[0].pk
+                else:
+                    price.country_id = self.insert_undefined_country(item['countyname'])
+                    countries = Country.objects.all()
+                    
                 price.date          = item['yyyy'] + '-' + item['regday'].replace('/', '-')
                 price.market        = item['marketname']
                 price.price         = int(item['price'].replace(',', '')) if item['price'].replace(',', '').isdigit() else -1
 
                 data_list.append(deepcopy(price))
-        
-        try:
-            Price.objects.bulk_create(data_list)
-        except Exception as e:
-            logging.info(f"Serializer Error: {e}")
+                
+            try:
+                Price.objects.bulk_create(data_list)
+            except Exception as e:
+                logging.info(f"Serializer Error: {e}")
 
 
     # @login_required

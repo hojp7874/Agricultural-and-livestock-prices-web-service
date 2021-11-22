@@ -6,6 +6,10 @@ import logging
 import json
 
 
+REQUEST_HEADERS = {
+    'User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'
+    }
+
 format = "%(asctime)s: %(message)s"
 logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
 
@@ -30,15 +34,13 @@ def duration(func):
 class Scrap:
     def __init__(self):
         self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
         self.url  = None
 
 
     async def _get_google_image(self, session, search_text):
         url = f"https://www.google.com/search?q={search_text}&tbm=isch"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0'
-        }
-        async with session.get(url, headers=headers) as res: # 429 (Too many requests) 발생할 수 있음.
+        async with session.get(url, headers=REQUEST_HEADERS) as res: # 429 (Too many requests) 발생할 수 있음.
             if res.status != 200: return None
             res_content = await res.text()
             soup = BeautifulSoup(res_content, 'html.parser')
@@ -78,7 +80,7 @@ class Scrap:
         }
         params = dict(params_const, **params_var)
         url = f"{self.url}?{'&'.join(f'{key}={value}' for key, value in params.items())}"
-        async with session.get(url) as res:
+        async with session.get(url, headers=REQUEST_HEADERS) as res:
             if res.status != 200: return None
             content = await res.text()
             content = json.loads(content)
@@ -87,6 +89,7 @@ class Scrap:
             elif content['data'] == ['001']: return None
             else:
                 kamis_data = content['data']['item']
+
         return kamis_data
     
 
@@ -111,21 +114,34 @@ class Scrap:
         p_itemcategorycode, p_kindcode, p_countrycode, p_convert_kg_yn
         """
 
+        response = self.loop.run_until_complete(self._get_all_kamis_data(params_var_list))
+        
         return self.loop.run_until_complete(self._get_all_kamis_data(params_var_list))
 
 
 if __name__ == "__main__":
     scrap = Scrap()
-    print(scrap.get_google_images(['사과', '딸기', '복숭아']))
-    # scrap.kamis_setting('1', '1')
-    # test_range = list(range(1000, 4000))
-    # countries = {'서울': 1101, '부산': 2100, '대구': 2200,
-    #              '광주': 2401, '대전': 2501, '인천': 2300,
-    #              '울산': 2601, '수원': 3111, '춘천': 3211, 
-    #              '청주': 3311, '전주': 3511, '포항': 3711,
-    #              '제주': 3911, '순천': 3613, '안동': 3714,
-    #              '창원': 3814, '용인': 3145, '의정부': 3113,
-    #              '세종': 2701, '강릉': 3214}
+    # print(scrap.get_google_images(['사과', '딸기', '복숭아']))
+    scrap.kamis_setting('1', '1')
+    # test_range = list(range(1101, 1102))
+    countries = {'서울': 1101, '부산': 2100, '대구': 2200,
+                 '광주': 2401, '대전': 2501, '인천': 2300,
+                 '울산': 2601, '수원': 3111, '춘천': 3211, 
+                 '청주': 3311, '전주': 3511, '포항': 3711,
+                 '제주': 3911, '순천': 3613, '안동': 3714,
+                 '창원': 3814, '용인': 3145, '의정부': 3113,
+                 '세종': 2701, '강릉': 3214} # 20개
     # for country in countries.values():
     #     test_range.remove(country)
-    # print(scrap.get_kamis_data([{'p_startday': '2021-10-27', 'p_endday': '2021-10-28', 'p_productclscode': '01', 'p_itemcode': 111, 'p_productrankcode': '04', 'p_countrycode': countrycode} for countrycode in test_range]))
+    results = scrap.get_kamis_data(
+        [
+            {
+                'p_startday': '2021-10-27', 
+                'p_endday': '2021-10-28', 
+                'p_productclscode': '01', 
+                'p_itemcode': 111, 
+                'p_productrankcode': '04', 
+                'p_countrycode': 1101
+            } for _ in range(100)])
+            # } for countrycode in countries.values() for _ in range(5)])
+    print(results)
