@@ -22,6 +22,8 @@ import timeit
 
 from copy import deepcopy
 
+import asyncio
+
 
 class InitDatabase(APIView):
     """
@@ -36,19 +38,20 @@ class InitDatabase(APIView):
     def __init__(self):
         import pandas as pd
 
-        self.item_category_code_form    = pd.read_excel('code.xlsx', sheet_name='부류코드', skiprows=[0])
-        self.item_code_form             = pd.read_excel('code.xlsx', sheet_name='품목코드', skiprows=[0])
-        self.kind_code_form             = pd.read_excel('code.xlsx', sheet_name='품종코드', skiprows=[0])
-        self.rank_code_form             = pd.read_excel('code.xlsx', sheet_name='등급코드', skiprows=[0])
+        self.item_category_code_form = pd.read_excel('code.xlsx', sheet_name='부류코드', skiprows=[0])
+        self.item_code_form          = pd.read_excel('code.xlsx', sheet_name='품목코드', skiprows=[0])
+        self.kind_code_form          = pd.read_excel('code.xlsx', sheet_name='품종코드', skiprows=[0])
+        self.rank_code_form          = pd.read_excel('code.xlsx', sheet_name='등급코드', skiprows=[0])
 
         kind_codes = self.kind_code_form['품종코드'].astype(str)
         kind_codes = kind_codes.apply(lambda x: "{:0>2s}".format(x))
         self.kind_code_form['품종코드'] = kind_codes
-
-        self.rank_code_form             = self.rank_code_form.dropna(axis=0, subset=['등급코드(p_productrankcode)'])
+        self.rank_code_form = self.rank_code_form.dropna(axis=0, subset=['등급코드(p_productrankcode)'])
         rank_codes = self.rank_code_form['등급코드(p_productrankcode)'].astype(int).astype(str)
         rank_codes = rank_codes.apply(lambda x: "{:0>2s}".format(x))
         self.rank_code_form['등급코드(p_productrankcode)'] = rank_codes
+
+        self.scrap = Scrap()
 
 
     @duration
@@ -112,9 +115,8 @@ class InitDatabase(APIView):
     @duration
     def init_food(self):
         # excel 파일 품목표가 최신화가 되어있지 않아 품종표로 대체함.
-        foods   = [food for food in self.kind_code_form['품목명']]
-        scrap   = Scrap()
-        images  = scrap.get_google_images(foods)
+        foods = [food for food in self.kind_code_form['품목명']]
+        images = self.scrap.loop.run_until_complete(self.scrap.get_google_images(foods))
 
         for idx, item_code in enumerate(self.kind_code_form['품목 코드']):
             item_category = item_code // 100 * 100
@@ -249,8 +251,8 @@ class DataPipeline(APIView):
     
 
     def country_code_generator(self):
-        country_code            = 0
-        defined_country_codes   = Country.objects.values_list('country_code')
+        country_code = 0
+        defined_country_codes = Country.objects.values_list('country_code')
         while True:
             country_code += 1
             if (country_code,) in defined_country_codes:
@@ -276,30 +278,30 @@ class DataPipeline(APIView):
             if response == None: continue
             data_list = []
 
-            price.food_id = food    = params_list[idx]['p_itemcode']
-            price.product_rank_id   = params_list[idx]['p_productrankcode']
-            price.product_cls_id    = params_list[idx]['p_productclscode']
+            price.food_id         = params_list[idx]['p_itemcode']
+            price.product_rank_id = params_list[idx]['p_productrankcode']
+            price.product_cls_id  = params_list[idx]['p_productclscode']
 
-            kinds = Kind.objects.filter(food=food)
+            kinds = Kind.objects.filter(food=price.food_id)
 
             for item in response:
                 if item['countyname'] in ('평균', '평년'): continue
 
-                *kind, unit         = item['kindname'].split('(')
-                kind_name           = '('.join(kind) if type(kind) == list else kind
-                price.kind_id       = kinds.get(kind=kind_name).pk
-                price.unit_id       = unit[1:-1]
+                *kind, unit   = item['kindname'].split('(')
+                kind_name     = '('.join(kind) if type(kind) == list else kind
+                price.kind_id = kinds.get(kind=kind_name).pk
+                price.unit_id = unit[1:-1]
 
-                country             = countries.filter(country=item['countyname'])
+                country = countries.filter(country=item['countyname'])
                 if country.exists():
                     price.country_id = country[0].pk
                 else:
                     price.country_id = self.insert_undefined_country(item['countyname'])
                     countries = Country.objects.all()
                     
-                price.date          = item['yyyy'] + '-' + item['regday'].replace('/', '-')
-                price.market        = item['marketname']
-                price.price         = int(item['price'].replace(',', '')) if item['price'].replace(',', '').isdigit() else -1
+                price.date   = item['yyyy'] + '-' + item['regday'].replace('/', '-')
+                price.market = item['marketname']
+                price.price  = int(item['price'].replace(',', '')) if item['price'].replace(',', '').isdigit() else -1
 
                 data_list.append(deepcopy(price))
                 
@@ -331,9 +333,9 @@ class DataPipeline(APIView):
         params      = {}
 
         for food_product_rank in food_product_ranks:
-            sday            = startday
-            food            = food_product_rank['food']
-            product_rank    = food_product_rank['product_rank']
+            sday         = startday
+            food         = food_product_rank['food']
+            product_rank = food_product_rank['product_rank']
             logging.info('{:=^30}'.format(Food.objects.get(item_code=food).food +'/'+ 
                                           ProductRank.objects.get(product_rank_code=product_rank).product_rank))
 
@@ -342,23 +344,24 @@ class DataPipeline(APIView):
 
             for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
                 logging.info(f"{sday} ~ {eday}")
-                params['p_startday']    = sday.__str__()
-                params['p_endday']      = eday.__str__()
+                params['p_startday'] = sday.__str__()
+                params['p_endday']   = eday.__str__()
 
                 for product_cls in ('01', '02'):
                     params['p_productclscode'] = product_cls
                     params_list.append(deepcopy(params))
 
                     if len(params_list) >= 100:
-                        responses = self.scrap.get_kamis_data(params_list)
+                        responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
                         self.insert_prices(params_list, responses)
                         params_list = []
 
                 sday = eday + datetime.timedelta(days=1)
 
         if params_list != []:
-            responses = self.scrap.get_kamis_data(params_list)
+            responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
             self.insert_prices(params_list, responses)
+        self.scrap.loop.close()
 
         response = {'success': 'Data has been updated.'}
         return JsonResponse(response)
@@ -392,8 +395,8 @@ class PricesView(APIView):
 
     def get(self, request, item_code):
         req = {key:value for key, value in request.GET.items()}
-        prices          = Price.objects.filter(food=item_code, **req).order_by('-date')
-        serializer      = PriceSerializer(prices, many=True)
+        prices     = Price.objects.filter(food=item_code, **req).order_by('-date')
+        serializer = PriceSerializer(prices, many=True)
         return Response(serializer.data)
 
 

@@ -48,17 +48,18 @@ class Scrap:
         return image
 
 
-    async def _get_google_images(self, search_texts):
+    async def get_google_images(self, search_texts):
+        """
+        "Async 함수입니다. self.loop.run_until_complete 메서드로 실행합니다."
+
+        Google Image 검색 결과를 반환합니다.
+        """
         async with aiohttp.ClientSession() as session:
             images = []
             for search_text in search_texts:
                 image = asyncio.ensure_future(self._get_google_image(session, search_text))
                 images.append(image)
             return await asyncio.gather(*images, return_exceptions=True)
-
-
-    def get_google_images(self, search_texts):
-        return self.loop.run_until_complete(self._get_google_images(search_texts))
 
 
     def kamis_setting(self, cert_key: str, cert_id: str):
@@ -90,21 +91,14 @@ class Scrap:
             else:
                 kamis_data = content['data']['item']
 
-        return kamis_data
+            return kamis_data
     
 
-    async def _get_all_kamis_data(self, params_var_list: dict):
-        async with aiohttp.ClientSession() as session:
-            all_kamis_data = []
-            for params_var in params_var_list:
-                kamis_data = asyncio.ensure_future(self._get_kamis_data(session, params_var))
-                all_kamis_data.append(kamis_data)
-            return await asyncio.gather(*all_kamis_data, return_exceptions=True)
-
-    
     @duration
-    def get_kamis_data(self, params_var_list: dict):
+    async def get_all_kamis_data(self, params_var_list: dict):
         """
+        "Async 함수입니다. self.loop.run_until_complete 메서드로 실행합니다."
+
         kamis api로 요청을 보냅니다.
 
         필수 params는 다음과 같습니다.
@@ -114,9 +108,12 @@ class Scrap:
         p_itemcategorycode, p_kindcode, p_countrycode, p_convert_kg_yn
         """
 
-        response = self.loop.run_until_complete(self._get_all_kamis_data(params_var_list))
-        
-        return self.loop.run_until_complete(self._get_all_kamis_data(params_var_list))
+        async with aiohttp.ClientSession() as session:
+            all_kamis_data = []
+            for params_var in params_var_list:
+                kamis_data = asyncio.create_task(self._get_kamis_data(session, params_var))
+                all_kamis_data.append(kamis_data)
+            return await asyncio.gather(*all_kamis_data, return_exceptions=True)
 
 
 if __name__ == "__main__":
@@ -133,7 +130,9 @@ if __name__ == "__main__":
                  '세종': 2701, '강릉': 3214} # 20개
     # for country in countries.values():
     #     test_range.remove(country)
-    results = scrap.get_kamis_data(
+    # loop = asyncio.new_event_loop()
+    # asyncio.set_event_loop(loop)
+    results = scrap.loop.run_until_complete(scrap._get_all_kamis_data(
         [
             {
                 'p_startday': '2021-10-27', 
@@ -142,6 +141,7 @@ if __name__ == "__main__":
                 'p_itemcode': 111, 
                 'p_productrankcode': '04', 
                 'p_countrycode': 1101
-            } for _ in range(100)])
+            } for _ in range(100)]))
             # } for countrycode in countries.values() for _ in range(5)])
-    print(results)
+    for result in results:
+        print(result[0])
