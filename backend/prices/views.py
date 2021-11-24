@@ -18,15 +18,15 @@ from .modules import Scrap, duration, logging
 import datetime
 import json
 
-import timeit
-
 from copy import deepcopy
 
 import asyncio
 
 
-class InitDatabase(APIView):
+class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 레거시 됨.
     """
+    현재 (food, all) mode 불가.
+
     KAMIS 규칙에 따라 데이터베이스를 초기화 합니다.
     부류, 품목, 품종, 등급 테이블 및 지역, 도/소매 테이블이 영향을 받습니다.
 
@@ -74,7 +74,7 @@ class InitDatabase(APIView):
 
     @duration
     def init_unit(self):
-        units = ['kg', '포기', '개', '리터', '마리', '장', '속', '접']
+        units = ['1kg', '1포기', '1개', '1리터', '1마리', '1장', '1속', '1접']
         for unit in units:
             serializer = UnitSerializer(data={'unit': unit})
             if serializer.is_valid(raise_exception=True):
@@ -267,11 +267,18 @@ class DataPipeline(APIView):
         return country_code
     
 
+    def insert_undefined_unit(self, unit):
+        Unit.objects.create(unit=unit)
+        logging.info(f"Unit '{unit}' is created.")
+        return unit
+    
+
     @duration
     def insert_prices(self, params_list, responses):
 
         price = Price()
         countries = Country.objects.all()
+        units = Unit.objects.all()
 
         for idx, response in enumerate(responses):
             logging.info(f'Prograss... {idx}%')
@@ -289,8 +296,13 @@ class DataPipeline(APIView):
 
                 *kind, unit   = item['kindname'].split('(')
                 kind_name     = '('.join(kind) if type(kind) == list else kind
-                price.kind_id = kinds.get(kind=kind_name).pk
-                price.unit_id = unit[1:-1]
+                price.kind_id = kinds.get(kind=kind_name).kind_code
+
+                if units.filter(unit=unit[:-1]).exists():
+                    price.unit_id = unit[:-1]
+                else:
+                    price.unit_id = self.insert_undefined_unit(unit[:-1])
+                    units = Unit.objects.all()
 
                 country = countries.filter(country=item['countyname'])
                 if country.exists():
@@ -300,15 +312,32 @@ class DataPipeline(APIView):
                     countries = Country.objects.all()
                     
                 price.date   = item['yyyy'] + '-' + item['regday'].replace('/', '-')
-                price.market = item['marketname']
-                price.price  = int(item['price'].replace(',', '')) if item['price'].replace(',', '').isdigit() else -1
+                # price.market = item['marketname']
+                price_value  = item['price'].replace(',', '')
+                if price_value.isdigit():
+                    price.price = int(price_value)
+                else:
+                    yesterday_price = Price.objects.filter(food=price.food,
+                                                           kind=price.kind,
+                                                           country=price.country,
+                                                           product_rank=price.product_rank,
+                                                           product_cls=price.product_cls)
+                    if yesterday_price.exists():
+                        yesterday_price = yesterday_price.latest('date').price
+                    else:
+                        continue
 
-                data_list.append(deepcopy(price))
+                # data_list.append(deepcopy(price))
+                try:
+                    deepcopy(price).save()
+                except Exception as e:
+                    logging.info(f"Serializer Error: {e}")
+                    print(price.__dict__)
                 
-            try:
-                Price.objects.bulk_create(data_list)
-            except Exception as e:
-                logging.info(f"Serializer Error: {e}")
+            # try:
+            #     Price.objects.bulk_create(data_list, ignore_conflicts=False)
+            # except Exception as e:
+            #     logging.info(f"Serializer Error: {e}")
 
 
     # @login_required
@@ -324,42 +353,42 @@ class DataPipeline(APIView):
         """
 
         food_product_ranks  = FoodProductRanks.objects.values('food', 'product_rank').distinct()
-        # startday    = datetime.date(2021, 10, 28)
+        # startday    = datetime.date(1996, 1, 1)
         startday    = Price.objects.latest('date').date if Price.objects.exists() else datetime.date(1996, 1, 1)
         endday      = datetime.date.today()
         days        = (endday - startday).days
         step        = 100
         params_list = []
         params      = {}
+        sday        = startday
 
-        for food_product_rank in food_product_ranks:
-            sday         = startday
-            food         = food_product_rank['food']
-            product_rank = food_product_rank['product_rank']
-            logging.info('{:=^30}'.format(Food.objects.get(item_code=food).food +'/'+ 
-                                          ProductRank.objects.get(product_rank_code=product_rank).product_rank))
+        for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
+            logging.info(f"{sday} ~ {eday}")
+            params['p_startday'] = sday.__str__()
+            params['p_endday']   = eday.__str__()
 
-            params['p_itemcode']        = food
-            params['p_productrankcode'] = product_rank
+            for food_product_rank in food_product_ranks: # 품목, 품종, 등급
+                food         = food_product_rank['food']
+                product_rank = food_product_rank['product_rank']
 
-            for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
-                logging.info(f"{sday} ~ {eday}")
-                params['p_startday'] = sday.__str__()
-                params['p_endday']   = eday.__str__()
+                params['p_itemcode']        = food
+                params['p_productrankcode'] = product_rank
 
                 for product_cls in ('01', '02'):
                     params['p_productclscode'] = product_cls
                     params_list.append(deepcopy(params))
 
                     if len(params_list) >= 100:
-                        responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
+                        # responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
+                        responses = asyncio.run(self.scrap.get_all_kamis_data(params_list))
                         self.insert_prices(params_list, responses)
                         params_list = []
 
-                sday = eday + datetime.timedelta(days=1)
+            sday = eday + datetime.timedelta(days=1)
 
         if params_list != []:
-            responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
+            # responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
+            responses = asyncio.run(self.scrap.get_all_kamis_data(params_list))
             self.insert_prices(params_list, responses)
         self.scrap.loop.close()
 
@@ -395,6 +424,7 @@ class PricesView(APIView):
 
     def get(self, request, item_code):
         req = {key:value for key, value in request.GET.items()}
+        print(req)
         prices     = Price.objects.filter(food=item_code, **req).order_by('-date')
         serializer = PriceSerializer(prices, many=True)
         return Response(serializer.data)

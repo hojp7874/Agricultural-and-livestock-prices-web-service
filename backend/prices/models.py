@@ -61,10 +61,14 @@ class Price(TimeStampedModel):
     country             = models.ForeignKey(Country,     on_delete=models.CASCADE, related_name='prices')
     product_rank        = models.ForeignKey(ProductRank, on_delete=models.CASCADE, related_name='prices')
     product_cls         = models.ForeignKey(ProductCls,  on_delete=models.CASCADE, related_name='prices')
-    unit                = models.ForeignKey(Unit,        on_delete=models.CASCADE, related_name='prices')
     date                = models.DateField()
-    market              = models.CharField(max_length=16)
+
+    unit                = models.ForeignKey(Unit,        on_delete=models.CASCADE, related_name='prices')
     price               = models.IntegerField()
+    # market              = models.CharField(max_length=16)
+
+    class Meta:
+        unique_together = (('food', 'kind', 'country', 'product_rank', 'product_cls', 'date'))
 
 
 class FoodComment(TimeStampedModel):
