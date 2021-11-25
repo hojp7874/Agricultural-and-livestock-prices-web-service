@@ -296,7 +296,7 @@ class DataPipeline(APIView):
 
                 *kind, unit   = item['kindname'].split('(')
                 kind_name     = '('.join(kind) if type(kind) == list else kind
-                price.kind_id = kinds.get(kind=kind_name).kind_code
+                price.kind_id = kinds.get(kind=kind_name).pk
 
                 if units.filter(unit=unit[:-1]).exists():
                     price.unit_id = unit[:-1]
@@ -415,11 +415,17 @@ class FoodListView(APIView):
 
 
 class FoodDetailView(APIView):
-    pass
+    """prices/foods/<pk:int>/
+    상품의 세부정보 반환"""
+
+    def get(self, request, item_code):
+        food = Food.objects.get(item_code=item_code)
+        serializer = FoodSerializer(food)
+        return Response(serializer.data)
 
 
 class PricesView(APIView):
-    """prices/foods/<pk:int>/prices
+    """prices/foods/<pk:int>/prices/
     상품의 가격 정보 반환"""
 
     def get(self, request, item_code):

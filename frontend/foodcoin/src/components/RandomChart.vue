@@ -14,7 +14,7 @@
     },
     data () {
       return {
-        datacollection: {},
+        datacollection: Object,
       }
     },
     mounted () {
@@ -27,8 +27,8 @@
         const labels = [];
         let prev1 = 100;
         let prev2 = 80;
-        for (let i = 0; i < 10000; i++) {
-          labels.push('january')
+        for (let i = 0; i < 1000; i++) {
+          labels.push(i)
           prev1 += 5 - Math.random() * 10;
           data1.push({x: i, y: prev1});
           prev2 += 5 - Math.random() * 10;
@@ -38,18 +38,12 @@
           labels: labels,
           datasets: [
             {
-              label: null,
-              borderColor: 'rgba(255,0,0,255)',
-              borderWidth: 1,
-              radius: 0,
-              backgroundColor: 'rgba(0,0,0,0)',
+              label: 'Data One',
+              backgroundColor: '#f87979',
               data: data1
             }, {
-              // label: 'Data One',
-              borderColor: 'rgba(0,0,255,255)',
-              borderWidth: 1,
-              radius: 0,
-              backgroundColor: 'rgba(0,0,0,0)',
+              label: 'Data One',
+              backgroundColor: '#f87979',
               data: data2
             }
           ]

@@ -1,14 +1,14 @@
 <template>
   <div>
+      <!-- :fields="fields" -->
     <b-table
       :items="items"
-      :fields="fields"
       :sort-by.sync="sortBy"
       :sort-desc.sync="sortDesc"
       striped
       hover
       selectable
-      @row-selected="get_prices"
+      @row-selected="get_food_detail"
     ></b-table>
   </div>
 </template>
@@ -27,7 +27,8 @@ export default {
       fields: [
         { key: 'item_code', sortable: true },
         { key: 'food',      sortable: true },
-        { key: 'price',     sortable: true }
+        { key: 'kind',      sortable: true },
+        { key: 'price',     sortable: true },
       ],
     }
   },
@@ -38,15 +39,19 @@ export default {
   //   }
   // },
   methods: {
-    get_prices(item) {
+    get_prices (item) {
       const food_id = item[0]['item_code']
-      axios.get(`${SERVER_URL}/prices/foods/${food_id}/prices`)
+      axios.get(`${SERVER_URL}/prices/foods/${food_id}/prices/`)
         .then(res => {
           console.log(res)
         })
     },
-    clicking() {
-      console.log('click!!!')
+    get_food_detail (item) {
+      const food_id = item[0]['item_code']
+      axios.get(`${SERVER_URL}/prices/foods/${food_id}/`)
+        .then(res => {
+          console.log(res)
+        })
     }
   },
   mounted() {

@@ -10,20 +10,21 @@ class ItemCategorySerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
-class FoodSerializer(serializers.ModelSerializer):
-    # prices      = PriceSerializer(many=True, read_only=True)
-    like_users  = UserSerializer(many=True, read_only=True)
-    # item_category = ItemCategorySerializer()
-
-    class Meta:
-        model   = Food
-        fields  = "__all__"
-
-
 class KindSerializer(serializers.ModelSerializer):
 
     class Meta:
         model   = Kind
+        fields  = "__all__"
+
+
+class FoodSerializer(serializers.ModelSerializer):
+    # prices      = PriceSerializer(many=True, read_only=True)
+    # like_users  = UserSerializer(many=True, read_only=True)
+    kinds = KindSerializer(many=True, read_only=True)
+    # item_category = ItemCategorySerializer()
+
+    class Meta:
+        model   = Food
         fields  = "__all__"
 
 
