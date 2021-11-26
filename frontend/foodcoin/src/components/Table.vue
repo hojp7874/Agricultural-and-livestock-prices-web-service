@@ -8,7 +8,7 @@
       striped
       hover
       selectable
-      @row-selected="get_food_detail"
+      @row-selected="getFoodInfo"
     ></b-table>
   </div>
 </template>
@@ -39,18 +39,12 @@ export default {
   //   }
   // },
   methods: {
-    get_prices (item) {
-      const food_id = item[0]['item_code']
-      axios.get(`${SERVER_URL}/prices/foods/${food_id}/prices/`)
-        .then(res => {
-          console.log(res)
-        })
-    },
-    get_food_detail (item) {
+    getFoodInfo (item) {
       const food_id = item[0]['item_code']
       axios.get(`${SERVER_URL}/prices/foods/${food_id}/`)
         .then(res => {
-          console.log(res)
+          const foodDetail = res.data
+          this.$emit('get-prices', foodDetail)
         })
     }
   },

@@ -17,17 +17,6 @@ class KindSerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
-class FoodSerializer(serializers.ModelSerializer):
-    # prices      = PriceSerializer(many=True, read_only=True)
-    # like_users  = UserSerializer(many=True, read_only=True)
-    kinds = KindSerializer(many=True, read_only=True)
-    # item_category = ItemCategorySerializer()
-
-    class Meta:
-        model   = Food
-        fields  = "__all__"
-
-
 class CountrySerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -61,6 +50,20 @@ class UnitSerializer(serializers.ModelSerializer):
     class Meta:
         model   = Unit
         fields  = "__all__"
+
+
+    # prices      = PriceSerializer(many=True, read_only=True)
+    # like_users  = UserSerializer(many=True, read_only=True)
+class FoodSerializer(serializers.ModelSerializer):
+    kinds = KindSerializer(many=True, read_only=True)
+    # countries = CountrySerializer(many=True, read_only=True)
+    product_ranks = FoodProductRanksSerializer(many=True, read_only=True)
+    # item_category = ItemCategorySerializer()
+
+    class Meta:
+        model   = Food
+        exclude = ['like_users']
+        # fields  = "__all__"
 
 
 class PriceSerializer(serializers.ModelSerializer):

@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import render
 from django.views.generic import View, FormView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.decorators import permission_required, login_required
@@ -16,6 +17,7 @@ from .models import Country, Food, ItemCategory, Kind, Price, FoodComment, FoodP
 from .modules import Scrap, duration, logging
 
 import datetime
+from dateutil.relativedelta import relativedelta
 import json
 
 from copy import deepcopy
@@ -361,6 +363,7 @@ class DataPipeline(APIView):
         params_list = []
         params      = {}
         sday        = startday
+        datetime.timedelta(month)
 
         for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
             logging.info(f"{sday} ~ {eday}")
@@ -424,16 +427,54 @@ class FoodDetailView(APIView):
         return Response(serializer.data)
 
 
-class PricesView(APIView):
-    """prices/foods/<pk:int>/prices/
-    상품의 가격 정보 반환"""
+@require_http_methods(['GET'])
+def prices_conditions(request, item_code):
+    """prices/foods/<pk:int>/prices-conditions/
+    가격 검색 조건 리스트 반환"""
+    
+    prices_condition_list = Price.objects\
+        .filter(food=item_code)\
+        .values('kind', 'product_rank', 'product_cls', 'country')\
+        .annotate(Count('id'))\
+        .values('kind', 'product_rank', 'product_cls', 'country')
+    return JsonResponse(list(prices_condition_list), safe=False)
 
-    def get(self, request, item_code):
-        req = {key:value for key, value in request.GET.items()}
-        print(req)
-        prices     = Price.objects.filter(food=item_code, **req).order_by('-date')
+
+class PricesView(APIView):
+    def __init__(self):
+        self.item_code = int,
+        self.conditions = list
+
+    def _set_prices_conditions(self, item_code):
+        prices_condition_list = Price.objects\
+            .filter(food=item_code)\
+            .values('kind', 'product_rank', 'product_cls', 'country')\
+            .annotate(Count('id'))\
+            .values('kind', 'product_rank', 'product_cls', 'country')
+        self.conditions = prices_condition_list
+        self.item_code = item_code
+        # return list(prices_condition_list)
+        # return JsonResponse(list(prices_condition_list), safe=False)
+    
+
+    def _get_prices_data(self, condition, period):
+        prices = Price.objects.filter(
+            food=self.item_code,
+            **condition,
+            # date__lte=datetime.date.today(),
+            # date__gte=datetime.date.today() - period
+            ).order_by('date')
         serializer = PriceSerializer(prices, many=True)
         return Response(serializer.data)
+
+
+    def get(self, request, item_code):
+        """prices/foods/<pk:int>/prices/
+        food table에서 food 클릭"""
+
+        self._set_prices_conditions(item_code)
+        condition = self.conditions[0]
+        return self._get_prices_data(condition, relativedelta(year=1000))
 
 
 @require_http_methods(['GET'])

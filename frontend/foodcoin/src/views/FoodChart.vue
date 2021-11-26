@@ -1,7 +1,7 @@
 <template>
   <div>
-    <Chart/>
-    <Table :items="items"/>
+    <Chart :prices="prices"/>
+    <Table :items="items" v-on:get-prices="getPrices"/>
   </div>
 </template>
 
@@ -20,11 +20,21 @@ export default {
   },
   data() {
     return {
-      items: Object
+      items: Object,
+      pricesCondition: {
+        food: Number,
+        kind: String,
+        country: Number,
+        productRank: String,
+        productCls: String,
+        period: 'W', // W: week, M: month, Y: year, T: total
+      },
+      searchConditions: [],
+      prices: Array,
     }
   },
   methods: {
-    get_foods() {
+    getFoods() {
       axios.get(`${SERVER_URL}/prices/food-table/`)
         .then((res) => {
           this.items = res.data
@@ -32,10 +42,20 @@ export default {
         .catch((err) => {
           console.log(err)
         })
-    }
+    },
+    getPrices (food) {
+      axios.get(`${SERVER_URL}/prices/foods/${food.item_code}/prices/`, {
+        params: {
+          kind: food.kinds[0]['id']}
+        })
+        .then(res => {
+          this.prices = res.data
+          console.log(this.prices)
+        })
+    },
   },
   created() {
-    this.get_foods()
+    this.getFoods()
   }
 }
 </script>

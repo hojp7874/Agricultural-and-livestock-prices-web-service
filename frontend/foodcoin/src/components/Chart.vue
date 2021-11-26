@@ -17,22 +17,18 @@
         datacollection: {},
       }
     },
+    props: ['prices'],
     mounted () {
       this.fillData()
     },
     methods: {
       fillData () {
         const data1 = [];
-        const data2 = [];
         const labels = [];
-        let prev1 = 100;
-        let prev2 = 80;
-        for (let i = 0; i < 10000; i++) {
-          labels.push('january')
-          prev1 += 5 - Math.random() * 10;
-          data1.push({x: i, y: prev1});
-          prev2 += 5 - Math.random() * 10;
-          data2.push({x: i, y: prev2});
+        for (let i = 0; i < this.prices.length; i++) {
+          const price = this.prices[i]
+          labels.push(price.date)
+          data1.push(price.price)
         }
         this.datacollection = {
           labels: labels,
@@ -44,14 +40,14 @@
               radius: 0,
               backgroundColor: 'rgba(0,0,0,0)',
               data: data1
-            }, {
-              // label: 'Data One',
-              borderColor: 'rgba(0,0,255,255)',
-              borderWidth: 1,
-              radius: 0,
-              backgroundColor: 'rgba(0,0,0,0)',
-              data: data2
-            }
+            },// {
+            //   // label: 'Data One',
+            //   borderColor: 'rgba(0,0,255,255)',
+            //   borderWidth: 1,
+            //   radius: 0,
+            //   backgroundColor: 'rgba(0,0,0,0)',
+            //   data: data2
+            // }
           ]
         }
       },
