@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Chart :prices="prices"/>
+    <Chart :pricesList="pricesList"/>
     <Table :items="items" v-on:get-prices="getPrices"/>
   </div>
 </template>
@@ -10,7 +10,7 @@ import Chart from '../components/Chart.vue'
 import Table from '../components/Table.vue'
 import axios from 'axios'
 
-const SERVER_URL = process.env.VUE_APP_SERVER_URL_LOCAL
+const SERVER_URL = process.env.VUE_APP_SERVER_URL
 
 export default {
   name: 'FoodChart',
@@ -30,7 +30,28 @@ export default {
         period: 'W', // W: week, M: month, Y: year, T: total
       },
       searchConditions: [],
-      prices: Array,
+      pricesList: [],
+      foods: [],
+    }
+  },
+  watch: {
+    foods(newFoods) {
+      if (newFoods.length > 0) {
+        const pricesList = []
+        for (let i = 0; i < newFoods.length; i++) {
+          const food = newFoods[i];
+          axios.get(`${SERVER_URL}/prices/foods/${food.item_code}/prices/`, {
+            params: {
+              kind: food.kinds[0]['id']}
+          })
+          .then(res => {
+            pricesList.push(res.data)
+          })
+        }
+        this.pricesList = pricesList
+      } else {
+        this.pricesList = []
+      }
     }
   },
   methods: {
@@ -39,19 +60,9 @@ export default {
         .then((res) => {
           this.items = res.data
         })
-        .catch((err) => {
-          console.log(err)
-        })
     },
-    getPrices (food) {
-      axios.get(`${SERVER_URL}/prices/foods/${food.item_code}/prices/`, {
-        params: {
-          kind: food.kinds[0]['id']}
-        })
-        .then(res => {
-          this.prices = res.data
-          console.log(this.prices)
-        })
+    getPrices (foods) {
+      this.foods = foods
     },
   },
   created() {

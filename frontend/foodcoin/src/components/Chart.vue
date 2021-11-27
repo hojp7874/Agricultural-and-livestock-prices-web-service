@@ -1,7 +1,6 @@
 <template>
   <div class="small">
     <line-chart :chart-data="datacollection"></line-chart>
-    <button @click="fillData()">Randomize</button>
   </div>
 </template>
 
@@ -14,47 +13,47 @@
     },
     data () {
       return {
-        datacollection: {},
       }
     },
-    props: ['prices'],
+    props: ['pricesList'],
     mounted () {
-      this.fillData()
     },
-    methods: {
-      fillData () {
-        const data1 = [];
-        const labels = [];
-        for (let i = 0; i < this.prices.length; i++) {
-          const price = this.prices[i]
-          labels.push(price.date)
-          data1.push(price.price)
-        }
-        this.datacollection = {
-          labels: labels,
-          datasets: [
-            {
+    computed: {
+      datacollection () {
+        let datasets = []
+        let labels = new Array(300)
+        labels.fill('test')
+        if (this.pricesList.length > 0) {
+          for (let i = 0; i < this.pricesList.length; i++) {
+            const prices = this.pricesList[i]
+            let data = []
+            for (let j = 0; j < prices.length; j++) {
+              const price = prices[j]
+              data.push(price.price)
+            }
+            const dataset = {
               label: null,
               borderColor: 'rgba(255,0,0,255)',
               borderWidth: 1,
               radius: 0,
               backgroundColor: 'rgba(0,0,0,0)',
-              data: data1
-            },// {
-            //   // label: 'Data One',
-            //   borderColor: 'rgba(0,0,255,255)',
-            //   borderWidth: 1,
-            //   radius: 0,
-            //   backgroundColor: 'rgba(0,0,0,0)',
-            //   data: data2
-            // }
-          ]
+              data: data
+            }
+            datasets.push(dataset)
+          }
         }
-      },
+        const result = {
+          labels: labels,
+          datasets: datasets
+        }
+        return result
+      }
+    },
+    methods: {
       getRandomInt () {
         return Math.floor(Math.random() * (50 - 5 + 1)) + 5
       }
-    }
+    },
   }
 </script>
 
