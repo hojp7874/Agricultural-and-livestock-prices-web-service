@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ItemCategory, Food, Kind, Country, ProductRank, ProductCls, Price, FoodComment, FoodProductRanks, Unit
+from .models import ItemCategory, Food, Kind, Country, ProductRank, ProductCls, Price, FoodComment#, Unit#, FoodProductRanks
 from accounts.serializers import UserSerializer
 
 
@@ -31,11 +31,11 @@ class ProductRankSerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
-class FoodProductRanksSerializer(serializers.ModelSerializer):
+# class FoodProductRanksSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model   = FoodProductRanks
-        fields  = "__all__"
+#     class Meta:
+#         model   = FoodProductRanks
+#         fields  = "__all__"
 
 
 class ProductClsSerializer(serializers.ModelSerializer):
@@ -45,11 +45,11 @@ class ProductClsSerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
-class UnitSerializer(serializers.ModelSerializer):
+# class UnitSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model   = Unit
-        fields  = "__all__"
+#     class Meta:
+#         model   = Unit
+#         fields  = "__all__"
 
 
     # prices      = PriceSerializer(many=True, read_only=True)
@@ -57,7 +57,7 @@ class UnitSerializer(serializers.ModelSerializer):
 class FoodSerializer(serializers.ModelSerializer):
     kinds = KindSerializer(many=True, read_only=True)
     # countries = CountrySerializer(many=True, read_only=True)
-    product_ranks = FoodProductRanksSerializer(many=True, read_only=True)
+    # product_ranks = FoodProductRanksSerializer(many=True, read_only=True)
     # item_category = ItemCategorySerializer()
 
     class Meta:

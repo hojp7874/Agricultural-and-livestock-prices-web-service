@@ -69,17 +69,17 @@ class Scrap:
         self.__cert_id     = cert_id
         self.returntype    = 'json'
         self.convert_kg_yn = 'Y'
-
-
-    async def _get_kamis_data(self, session, params_var):
-        params_const = {
+        self.params_const  = {
             'action'          : self.action,
             'p_cert_key'      : self.__cert_key,
             'p_cert_id'       : self.__cert_id,
             'p_returntype'    : self.returntype,
             'p_convert_kg_yn' : self.convert_kg_yn
         }
-        params = dict(params_const, **params_var)
+
+
+    async def _get_kamis_data(self, session, params_var):
+        params = dict(self.params_const, **params_var)
         url = f"{self.url}?{'&'.join(f'{key}={value}' for key, value in params.items())}"
         async with session.get(url, headers=REQUEST_HEADERS) as res:
             if res.status != 200: return None
@@ -95,7 +95,7 @@ class Scrap:
     
 
     @duration
-    async def get_all_kamis_data(self, params_var_list: dict):
+    async def get_all_kamis_data(self, params_list: list):
         """
         "Async 함수입니다. self.loop.run_until_complete 메서드로 실행합니다."
 
@@ -110,7 +110,7 @@ class Scrap:
 
         async with aiohttp.ClientSession() as session:
             all_kamis_data = []
-            for params_var in params_var_list:
+            for params_var in params_list:
                 kamis_data = asyncio.create_task(self._get_kamis_data(session, params_var))
                 all_kamis_data.append(kamis_data)
             return await asyncio.gather(*all_kamis_data, return_exceptions=True)
