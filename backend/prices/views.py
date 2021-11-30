@@ -75,15 +75,6 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
                 serializer.save()
     
 
-    # @duration
-    # def init_unit(self):
-    #     units = ['1kg', '1포기', '1개', '1리터', '1마리', '1장', '1속', '1접']
-    #     for unit in units:
-    #         serializer = UnitSerializer(data={'unit': unit})
-    #         if serializer.is_valid(raise_exception=True):
-    #             serializer.save()
-    
-
     @duration
     def init_product_cls(self):
         for product_cls_code, product_cls in (('01', '소매'), ('02', '도매')):
@@ -106,22 +97,6 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
     @duration
     def init_food(self):
         # excel 파일 품목표가 최신화가 되어있지 않아 품종표로 대체함.
-        # foods = [food for food in self.kind_code_form['품목명']]
-        # # images = self.scrap.loop.run_until_complete(self.scrap.get_google_images(foods))
-
-        # for idx, item_code in enumerate(self.kind_code_form['품목 코드']):
-        #     item_category = item_code // 100 * 100
-        #     if Food.objects.filter(item_code=item_code):
-        #         continue
-
-        #     serializer = FoodSerializer(data={'item_code': item_code,
-        #                                       'item_category': item_category,
-        #                                       'food': foods[idx],
-        #                                       #'image': images[idx]})
-        #                                       'image': 'No Image'})
-        #     if serializer.is_valid(raise_exception=True):
-        #         serializer.save()
-
 
         # foods = [food for food in self.kind_code_form['품목명']]
         # images = self.scrap.loop.run_until_complete(self.scrap.get_google_images(foods))
@@ -190,29 +165,6 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
             for product_rank_code in product_rank_codes:
                 product_rank = ProductRank.objects.get(product_rank_code=product_rank_code)
                 product_rank.kinds.add(kind)
-                # serializer = FoodProductRanksSerializer(data={'food': food,
-                #                                               'kind': kind,
-                #                                               'product_rank': product_rank})
-                # if serializer.is_valid(raise_exception=True):
-                #     serializer.save()
-
-
-    # @duration
-    # def init_food_product_ranks(self):
-    #     for food, kind_code, *product_ranks in zip(self.kind_code_form['품목 코드'],
-    #                                                self.kind_code_form['품종코드'],
-    #                                                self.kind_code_form['도매 등급'],
-    #                                                self.kind_code_form['소매 등급'],
-    #                                                self.kind_code_form["친환경 등급('05~'20.3)"],
-    #                                                self.kind_code_form["친환경 등급('20.4~)"]):
-    #         kind = Kind.objects.get(food=food, kind_code=kind_code).pk
-    #         product_ranks = ','.join((rank for rank in product_ranks if type(rank) == str))
-    #         for product_rank in set(product_ranks.split(',')):
-    #             serializer = FoodProductRanksSerializer(data={'food': food,
-    #                                                           'kind': kind,
-    #                                                           'product_rank': product_rank})
-    #             if serializer.is_valid(raise_exception=True):
-    #                 serializer.save()
 
 
     def post(self, request):
@@ -220,11 +172,6 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
             self.init_country()
             countries           = Country.objects.all()
             serializer          = CountrySerializer(countries, many=True)
-        
-        # elif request.POST['mode'] == 'unit':
-        #     self.init_unit()
-        #     unit                = Unit.objects.all()
-        #     serializer          = UnitSerializer(unit, many=True)
         
         elif request.POST['mode'] == 'productcls':
             self.init_product_cls()
@@ -251,20 +198,13 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
             product_ranks       = ProductRank.objects.all()
             serializer          = ProductRankSerializer(product_ranks, many=True)
 
-        # elif request.POST['mode'] == 'foodproductranks':
-        #     self.init_foodproductranks()
-        #     food_product_ranks  = FoodProductRanks.objects.all()
-        #     serializer          = FoodProductRanksSerializer(food_product_ranks, many=True)
-        
         elif request.POST['mode'] == 'all':
             self.init_country()
-            # self.init_unit()
             self.init_product_cls()
             self.init_item_category()
             self.init_food()
             self.init_kind()
             self.init_product_rank()
-            # self.init_food_product_ranks()
             response = {'success': 'Every tables are init!'}
 
             return JsonResponse(response)
@@ -280,13 +220,11 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
     def delete(self, request):
         """테이블 내용 삭제"""
 
-        # FoodProductRanks.objects.all().delete()
         ProductRank.objects.all().delete()
         Kind.objects.all().delete()
         Food.objects.all().delete()
         ItemCategory.objects.all().delete()
         ProductCls.objects.all().delete()
-        # Unit.objects.all().delete()
         Country.objects.all().delete()
 
         response = {'success': 'Every tables are deleted.'}
@@ -321,81 +259,50 @@ class DataPipeline(APIView):
         return country_code
     
 
-    def insert_undefined_unit(self, unit):
-        Unit.objects.create(unit=unit)
-        logging.info(f"Unit '{unit}' is created.")
-        return unit
-    
-
     @duration
     def insert_prices(self, conditions, responses):
 
         price = Price()
+        price.food_id = conditions['p_itemcode']
+        price.kind_id = conditions['p_kindcode']
+        price.product_rank_id = conditions['p_productrankcode']
+        price.product_cls_id = conditions['p_productclscode']
+
         countries = Country.objects.all()
-        units = Unit.objects.all()
         len_res = len(responses)
 
-        price.food_id = conditions['']
+        data_list = []
 
         for idx, response in enumerate(responses):
-            logging.info(f'Prograss... {idx}/{len_res}')
+            logging.info(f'Prograss... ({idx}/{len_res})')
             if response == None:
                 continue
-
-            price.food_id         = params_list[idx]['p_itemcode']
-            price.product_rank_id = params_list[idx]['p_productrankcode']
-            price.product_cls_id  = params_list[idx]['p_productclscode']
-
-            kinds = Kind.objects.filter(food=price.food_id)
 
             for item in response:
                 if item['countyname'] in ('평균', '평년'):
                     continue
 
-                *kind, unit   = item['kindname'].split('(')
-                kind_name     = '('.join(kind) if type(kind) == list else kind
-                price.kind_id = kinds.get(kind=kind_name).pk
+                price_value  = item['price'].replace(',', '')
+                if not price_value.isdigit():
+                    continue
 
-                if units.filter(unit=unit[:-1]).exists():
-                    price.unit_id = unit[:-1]
-                else:
-                    price.unit_id = self.insert_undefined_unit(unit[:-1])
-                    units = Unit.objects.all()
-
-                country = countries.filter(country=item['countyname'])
-                if country.exists():
-                    price.country_id = country[0].pk
-                else:
+                price.price = int(price_value)
+                
+                try:
+                    price.country_id = countries.get(country=item['countyname']).pk
+                except:
                     price.country_id = self.insert_undefined_country(item['countyname'])
                     countries = Country.objects.all()
                     
                 price.date   = item['yyyy'] + '-' + item['regday'].replace('/', '-')
-                # price.market = item['marketname']
-                price_value  = item['price'].replace(',', '')
                 if price_value.isdigit():
                     price.price = int(price_value)
-                else:
-                    yesterday_price = Price.objects.filter(food=price.food,
-                                                           kind=price.kind,
-                                                           country=price.country,
-                                                           product_rank=price.product_rank,
-                                                           product_cls=price.product_cls)
-                    if yesterday_price.exists():
-                        yesterday_price = yesterday_price.latest('date').price
-                    else:
-                        continue
-
-                # data_list.append(deepcopy(price))
-                try:
-                    deepcopy(price).save()
-                except Exception as e:
-                    logging.info(f"Serializer Error: {e}")
-                    print(price.__dict__)
-                
-            # try:
-            #     Price.objects.bulk_create(data_list, ignore_conflicts=False)
-            # except Exception as e:
-            #     logging.info(f"Serializer Error: {e}")
+                    data_list.append(deepcopy(price))
+        try:
+            Price.objects.bulk_create(data_list, ignore_conflicts=True)
+            logging.info(f'{len(data_list)}개의 데이터가 저장되었습니다.')
+        except Exception as e:
+            logging.info(f"Serializer Error: {e}")
 
 
     # @login_required
@@ -409,17 +316,6 @@ class DataPipeline(APIView):
                 productclscode (2)
         # Total:: 46,930 request
         """
-
-        # food_product_ranks  = FoodProductRanks.objects.values('food', 'product_rank').distinct()
-        # startday    = datetime.date(1996, 1, 1)
-        # startday    = Price.objects.latest('date').date if Price.objects.exists() else datetime.date(1996, 1, 1)
-        # endday      = datetime.date.today()
-        # days        = (endday - startday).days
-        # step        = 100
-        # params_list = []
-        # params      = {}
-        # sday        = startday
-        # # datetime.timedelta(month)
 
         date_list = []
         sday = datetime.date(1996,1,1)
@@ -467,37 +363,6 @@ class DataPipeline(APIView):
                         responses = asyncio.run(self.scrap.get_all_kamis_data(params_list))
                         self.insert_prices(conditions, responses)
 
-
-
-        # for eday in (startday + datetime.timedelta(time_delta) for time_delta in range(days % step, days+1, step)):
-        #     logging.info(f"{sday} ~ {eday}")
-        #     params['p_startday'] = sday.__str__()
-        #     params['p_endday']   = eday.__str__()
-
-        #     for food_product_rank in food_product_ranks: # 품목, 품종, 등급
-        #         food         = food_product_rank['food']
-        #         product_rank = food_product_rank['product_rank']
-
-        #         params['p_itemcode']        = food
-        #         params['p_productrankcode'] = product_rank
-
-        #         for product_cls in ('01', '02'):
-        #             params['p_productclscode'] = product_cls
-        #             params_list.append(deepcopy(params))
-
-        #             if len(params_list) >= 100:
-        #                 # responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
-        #                 responses = asyncio.run(self.scrap.get_all_kamis_data(params_list))
-        #                 self.insert_prices(params_list, responses)
-        #                 params_list = []
-
-        #     sday = eday + datetime.timedelta(days=1)
-
-        # if params_list != []:
-        #     # responses = self.scrap.loop.run_until_complete(self.scrap.get_all_kamis_data(params_list))
-        #     responses = asyncio.run(self.scrap.get_all_kamis_data(params_list))
-        #     self.insert_prices(params_list, responses)
-        # self.scrap.loop.close()
 
         response = {'success': 'Data has been updated.'}
         return JsonResponse(response)

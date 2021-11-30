@@ -68,7 +68,7 @@ class Scrap:
         self.__cert_key    = cert_key
         self.__cert_id     = cert_id
         self.returntype    = 'json'
-        self.convert_kg_yn = 'Y'
+        self.convert_kg_yn = 'N'
         self.params_const  = {
             'action'          : self.action,
             'p_cert_key'      : self.__cert_key,
