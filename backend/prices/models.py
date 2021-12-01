@@ -51,10 +51,6 @@ class ProductCls(models.Model):
     product_cls         = models.CharField(max_length=2, unique=True)
 
 
-# class Unit(models.Model):
-#     unit                = models.CharField(primary_key=True, max_length=4)
-
- 
 class Price(models.Model):
     food                = models.ForeignKey(Food,        on_delete=models.CASCADE, related_name='prices')
     kind                = models.ForeignKey(Kind,        on_delete=models.CASCADE, related_name='prices')
@@ -63,11 +59,13 @@ class Price(models.Model):
     product_cls         = models.ForeignKey(ProductCls,  on_delete=models.CASCADE, related_name='prices')
     date                = models.DateField()
 
-    # unit                = models.ForeignKey(Unit,        on_delete=models.CASCADE, related_name='prices')
     price               = models.IntegerField()
 
     class Meta:
         unique_together = (('food', 'kind', 'country', 'product_rank', 'product_cls', 'date'))
+        indexes = [
+            models.Index(fields=('food', 'kind', 'country', 'product_rank', 'product_cls', 'date'))
+        ]
 
 
 class FoodComment(TimeStampedModel):

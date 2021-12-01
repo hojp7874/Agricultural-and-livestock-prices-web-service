@@ -10,13 +10,6 @@ class ItemCategorySerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
-class KindSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model   = Kind
-        fields  = "__all__"
-
-
 class CountrySerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -31,11 +24,12 @@ class ProductRankSerializer(serializers.ModelSerializer):
         fields  = "__all__"
 
 
-# class FoodProductRanksSerializer(serializers.ModelSerializer):
+class KindSerializer(serializers.ModelSerializer):
+    product_ranks = ProductRankSerializer(many=True, read_only=True)
 
-#     class Meta:
-#         model   = FoodProductRanks
-#         fields  = "__all__"
+    class Meta:
+        model   = Kind
+        fields  = "__all__"
 
 
 class ProductClsSerializer(serializers.ModelSerializer):
@@ -43,13 +37,6 @@ class ProductClsSerializer(serializers.ModelSerializer):
     class Meta:
         model   = ProductCls
         fields  = "__all__"
-
-
-# class UnitSerializer(serializers.ModelSerializer):
-
-#     class Meta:
-#         model   = Unit
-#         fields  = "__all__"
 
 
     # prices      = PriceSerializer(many=True, read_only=True)

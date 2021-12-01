@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.renderers import JSONRenderer
 from rest_framework.views import APIView
 from rest_framework import generics
 
@@ -264,7 +266,7 @@ class DataPipeline(APIView):
 
         price = Price()
         price.food_id = conditions['p_itemcode']
-        price.kind_id = conditions['p_kindcode']
+        price.kind_id = Kind.objects.get(food=price.food_id, kind_code=conditions['p_kindcode']).pk
         price.product_rank_id = conditions['p_productrankcode']
         price.product_cls_id = conditions['p_productclscode']
 
@@ -366,34 +368,36 @@ class DataPipeline(APIView):
 
         response = {'success': 'Data has been updated.'}
         return JsonResponse(response)
-    
-
-    def delete(self, request):
-        result = Price.objects.all().delete()
-        response = {'success': f'{result[0]} Price data has been deleted.'}
-        return JsonResponse(response)
 
 
-class FoodListView(APIView):
-    """prices/foods/"""
+@api_view(['GET'])
+def get_countries(request):
+    """prices/countries/
+    모든 지역 데이터를 반환합니다."""
 
-    def get(self, request):
-        """
-        모든 음식 데이터 전송
-        """
-        foods = Food.objects.all()#.order_by(request.data['order'])
-        serializer = FoodSerializer(foods, many=True)
-        return Response(serializer.data)
+    countries = Country.objects.all()
+    serializer = CountrySerializer(countries, many=True)
+    return Response(serializer.data)
 
 
-class FoodDetailView(APIView):
+@api_view(['GET'])
+def get_foods(request):
+    """prices/foods/
+    모든 음식 데이터를 반환합니다."""
+
+    foods = Food.objects.all()
+    serializer = FoodSerializer(foods, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def get_food_detail(request, item_code):
     """prices/foods/<pk:int>/
-    상품의 세부정보 반환"""
+    품목의 세부정보 반환"""
 
-    def get(self, request, item_code):
-        food = Food.objects.get(item_code=item_code)
-        serializer = FoodSerializer(food)
-        return Response(serializer.data)
+    food = Food.objects.get(item_code=item_code)
+    serializer = FoodSerializer(food)
+    return Response(serializer.data)
 
 
 @require_http_methods(['GET'])
@@ -409,19 +413,15 @@ def prices_conditions(request, item_code):
     return JsonResponse(list(prices_condition_list), safe=False)
 
 
-class PricesView(APIView):
-    def get(self, request, item_code):
-        """prices/foods/<pk:int>/prices/
-        food table에서 food 클릭"""
+@api_view(['GET'])
+def get_prices(request, item_code):
+    """prices/foods/<pk:int>/prices/
+    조건에 해당되는 prices를 반환합니다."""
 
-        condition = json.loads(request.GET['condition'])
-        prices = Price.objects.filter(
-            **condition,
-            # date__lte=datetime.date.today(),
-            # date__gte=datetime.date.today() - period
-            ).order_by('date')
-        serializer = PriceSerializer(prices, many=True)
-        return Response(serializer.data)
+    condition = json.loads(request.GET['condition'])
+    prices = Price.objects.filter(**condition).order_by('date')
+    serializer = PriceSerializer(prices, many=True)
+    return Response(serializer.data)
 
 
 @require_http_methods(['GET'])
