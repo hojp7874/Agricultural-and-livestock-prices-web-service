@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-=s-%j623u3g&)k9@&x)0uyajyux9)o)*ftnek513drjety9seu'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['ec2-13-209-83-226.ap-northeast-2.compute.amazonaws.com', '127.0.0.1']
+ALLOWED_HOSTS = ['ec2-3-38-152-194.ap-northeast-2.compute.amazonaws.com', '127.0.0.1']
 
 
 # Application definition
@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'django_seed',
+    'corsheaders',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -56,10 +57,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-    'http://ec2-3-35-137-180.ap-northeast-2.compute.amazonaws.com:8000',
+    # 'http://localhost:8080',
+    # 'http://127.0.0.1:8080',
+    'http://3.38.152.194',
 ]
 
 ROOT_URLCONF = 'foodcoin.urls'

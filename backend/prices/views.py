@@ -126,7 +126,7 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
                                               'image': 'No Image'})
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-    
+
 
     @duration
     def init_kind(self):
@@ -431,9 +431,11 @@ def food_table(request):
     food 목록 반환"""
 
     foods = Food.objects.values('item_code', 'food')
-    for food in foods:
-        try:
-            food.setdefault('price', Price.objects.filter(food=food['item_code']).latest('id').price)
-        except:
-            food.setdefault('price', '-')
+    # N+1.
+    # 1) Add price_last, price_month, price_year field
+    # for food in foods:
+    #     try:
+    #         food.setdefault('price', Price.objects.filter(food=food['item_code']).latest('id').price)
+    #     except:
+    #         food.setdefault('price', '-')
     return JsonResponse(list(foods), safe=False)
