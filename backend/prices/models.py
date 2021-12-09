@@ -77,7 +77,7 @@ class Price(models.Model):
     price               = models.IntegerField()
 
     class Meta:
-        # unique_together = (('condition', 'date'))
+        unique_together = (('condition', 'date'))
         indexes = [
             models.Index(fields=('condition', 'date'))
         ]
