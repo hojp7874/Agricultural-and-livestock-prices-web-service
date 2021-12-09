@@ -90,6 +90,7 @@ class Scrap:
             elif content['data'] == ['001']: return None
             else:
                 kamis_data = content['data']['item']
+                print(content['condition'])
 
             return kamis_data
     
@@ -111,6 +112,7 @@ class Scrap:
         async with aiohttp.ClientSession() as session:
             all_kamis_data = []
             for params_var in params_list:
+                print(params_var)
                 kamis_data = asyncio.create_task(self._get_kamis_data(session, params_var))
                 all_kamis_data.append(kamis_data)
             return await asyncio.gather(*all_kamis_data, return_exceptions=True)

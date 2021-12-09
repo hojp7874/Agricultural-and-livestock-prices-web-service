@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ItemCategory, Food, Kind, Country, ProductRank, ProductCls, Price, FoodComment#, Unit#, FoodProductRanks
+from .models import ItemCategory, Food, Kind, Country, ProductRank, ProductCls, Price, FoodComment, PriceCondition
 from accounts.serializers import UserSerializer
 
 
@@ -52,6 +52,12 @@ class FoodSerializer(serializers.ModelSerializer):
         exclude = ['like_users']
         # fields  = "__all__"
 
+
+class PriceConditionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model   = PriceCondition
+        fields  = "__all__"
 
 class PriceSerializer(serializers.ModelSerializer):
 

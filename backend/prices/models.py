@@ -51,20 +51,35 @@ class ProductCls(models.Model):
     product_cls         = models.CharField(max_length=2, unique=True)
 
 
-class Price(models.Model):
-    food                = models.ForeignKey(Food,        on_delete=models.CASCADE, related_name='prices')
-    kind                = models.ForeignKey(Kind,        on_delete=models.CASCADE, related_name='prices')
-    country             = models.ForeignKey(Country,     on_delete=models.CASCADE, related_name='prices')
-    product_rank        = models.ForeignKey(ProductRank, on_delete=models.CASCADE, related_name='prices')
-    product_cls         = models.ForeignKey(ProductCls,  on_delete=models.CASCADE, related_name='prices')
-    date                = models.DateField()
+class PriceCondition(models.Model):
+    # food                = models.ForeignKey(Food,        on_delete=models.CASCADE, related_name='conditions')
+    kind                = models.ForeignKey(Kind,        on_delete=models.CASCADE, related_name='conditions')
+    country             = models.ForeignKey(Country,     on_delete=models.CASCADE, related_name='conditions')
+    product_rank        = models.ForeignKey(ProductRank, on_delete=models.CASCADE, related_name='conditions')
+    product_cls         = models.ForeignKey(ProductCls,  on_delete=models.CASCADE, related_name='conditions')
 
+    class Meta:
+        unique_together = (('kind', 'country', 'product_rank', 'product_cls'))
+        indexes = [
+            models.Index(fields=('kind', 'country', 'product_rank', 'product_cls'))
+        ]
+
+
+class Price(models.Model):
+    # food                = models.ForeignKey(Food,        on_delete=models.CASCADE, related_name='prices')
+    # kind                = models.ForeignKey(Kind,        on_delete=models.CASCADE, related_name='prices')
+    # country             = models.ForeignKey(Country,     on_delete=models.CASCADE, related_name='prices')
+    # product_rank        = models.ForeignKey(ProductRank, on_delete=models.CASCADE, related_name='prices')
+    # product_cls         = models.ForeignKey(ProductCls,  on_delete=models.CASCADE, related_name='prices')
+
+    condition           = models.ForeignKey(PriceCondition, on_delete=models.CASCADE, related_name='prices')
+    date                = models.DateField()
     price               = models.IntegerField()
 
     class Meta:
-        unique_together = (('food', 'kind', 'country', 'product_rank', 'product_cls', 'date'))
+        # unique_together = (('condition', 'date'))
         indexes = [
-            models.Index(fields=('food', 'kind', 'country', 'product_rank', 'product_cls', 'date'))
+            models.Index(fields=('condition', 'date'))
         ]
 
 
