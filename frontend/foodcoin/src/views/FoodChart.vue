@@ -41,8 +41,9 @@ export default {
       this.getFoodDetail(foodIds)
     },
     getTable() {
-      axios.get(`${SERVER_URL}/prices/food-table/`)
+      axios.get(`${SERVER_URL}/prices/foods/`)
         .then((res) => {
+          console.log(res.data)
           this.tableRows = res.data
         })
     },
@@ -68,7 +69,7 @@ export default {
       const foodId = condition.food
       const foodName = condition.foodName
       const params = {
-        'food_id': condition.food,
+        // 'food_id': condition.food,
         'kind_id': condition.kind,
         'product_rank_id': condition.rank,
         'product_cls_id': condition.cls,

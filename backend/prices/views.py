@@ -418,7 +418,8 @@ def get_prices(request, item_code):
     조건에 해당되는 prices를 반환합니다."""
 
     condition = json.loads(request.GET['condition'])
-    prices = Price.objects.filter(**condition).order_by('date')
+    price_condition = PriceCondition.objects.get(**condition)
+    prices = price_condition.prices
     serializer = PriceSerializer(prices, many=True)
     return Response(serializer.data)
 

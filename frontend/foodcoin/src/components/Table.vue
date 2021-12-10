@@ -1,8 +1,8 @@
 <template>
   <div>
-      <!-- :fields="fields" -->
     <b-table
       :items="tableRows"
+      :fields="fields"
       :sort-by.sync="sortBy"
       :sort-desc.sync="sortDesc"
       striped
@@ -21,10 +21,8 @@ export default {
       sortBy: 'item_code',
       sortDesc: false,
       fields: [
-        { key: 'item_code', sortable: true },
+        // { key: 'item_code', sortable: true },
         { key: 'food',      sortable: true },
-        { key: 'kind',      sortable: true },
-        { key: 'price',     sortable: true },
       ],
     }
   },
