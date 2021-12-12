@@ -53,18 +53,19 @@ class FoodSerializer(serializers.ModelSerializer):
         # fields  = "__all__"
 
 
-class PriceConditionSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model   = PriceCondition
-        fields  = "__all__"
-
 class PriceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model   = Price
         fields  = "__all__"
 
+
+class PriceConditionSerializer(serializers.ModelSerializer):
+    prices = PriceSerializer(many=True, read_only=True)
+
+    class Meta:
+        model   = PriceCondition
+        fields  = "__all__"
 
 class FoodCommentSerializer(serializers.ModelSerializer):
 

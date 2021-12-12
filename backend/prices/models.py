@@ -57,11 +57,12 @@ class PriceCondition(models.Model):
     country             = models.ForeignKey(Country,     on_delete=models.CASCADE, related_name='conditions')
     product_rank        = models.ForeignKey(ProductRank, on_delete=models.CASCADE, related_name='conditions')
     product_cls         = models.ForeignKey(ProductCls,  on_delete=models.CASCADE, related_name='conditions')
+    prices_exists       = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('kind', 'country', 'product_rank', 'product_cls'))
         indexes = [
-            models.Index(fields=('kind', 'country', 'product_rank', 'product_cls'))
+            models.Index(fields=('kind', 'country', 'product_rank', 'product_cls', 'prices_exists'))
         ]
 
 

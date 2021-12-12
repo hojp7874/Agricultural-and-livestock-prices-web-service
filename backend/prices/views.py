@@ -337,7 +337,7 @@ class DataPipeline(APIView):
         # Total:: 46,930 request
         """
 
-        # KAMIS API BLOCKED: 1년 내의 데이터만 요청 가능
+        ## KAMIS API BLOCKED: 1년 내의 데이터만 요청 가능
         # date_list = []
         # sday = datetime.date(1996,1,1)
         # delta = relativedelta(years=1, days=-1)
@@ -350,9 +350,17 @@ class DataPipeline(APIView):
 
         price_conditions = PriceCondition.objects.all()
 
-        for price_condition in price_conditions:
+        start_idx = 0
+        for idx, price_condition in enumerate(price_conditions):
             if price_condition.prices.exists():
-                continue
+                start_idx = idx+1
+                
+        if start_idx == len(price_conditions):
+            return JsonResponse({'success': 'Data has been updated.'})
+
+        price_conditions = price_conditions[start_idx:]
+
+        for price_condition in price_conditions:
             
             params_list = [{'p_itemcode': price_condition.kind.food_id,
                             'p_kindcode': price_condition.kind.kind_code,
@@ -365,8 +373,23 @@ class DataPipeline(APIView):
             responses = asyncio.run(self.scrap.get_all_kamis_data(params_list))
             self.insert_prices(price_condition, responses)
 
-        response = {'success': 'Data has been updated.'}
-        return JsonResponse(response)
+        return JsonResponse({'success': 'Data has been updated.'})
+
+
+@api_view(['PUT'])
+def check_valid_price_condition(request):
+    """prices/price-condition/price-exists/
+    유효한 조건(가격 정보가 있는 조건)을 표시합니다."""
+
+    price_conditions = PriceCondition.objects.all()
+    for price_condition in price_conditions:
+        if price_condition.prices.exists():
+            price_condition.prices_exists = True
+            price_condition.save()
+    
+    result = price_conditions.filter(prices_exists=True)
+    serializer = PriceConditionSerializer(result)
+    return Response(serializer.data)
 
 
 @api_view(['GET'])
@@ -404,6 +427,9 @@ def prices_conditions(request, item_code):
     """prices/foods/<pk:int>/prices-conditions/
     가격 검색 조건 리스트 반환"""
     
+    price_conditions = PriceCondition.objects.all()
+    exist_price_conditions = list(filter(lambda x: x.prices.exists(), price_conditions))
+
     prices_condition_list = Price.objects\
         .filter(food=item_code)\
         .values('kind', 'product_rank', 'product_cls', 'country')\

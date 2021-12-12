@@ -11,4 +11,5 @@ urlpatterns = [
     path('foods/<int:item_code>/prices/',           views.get_prices),
     path('foods/<int:item_code>/prices-conditions/',views.prices_conditions),
     path('countries/',                              views.get_countries),
+    path('price-condition/price-exists/',           views.check_valid_price_condition),
 ]

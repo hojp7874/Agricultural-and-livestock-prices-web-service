@@ -1,6 +1,14 @@
 <template>
   <div class="small">
     <line-chart :chart-data="datacollection"></line-chart>
+    <!-- <b-badge
+      @click="deleteRow(key)"
+      style="background-color: black; cursor:pointer"
+      v-for="prices, key in pricesDict"
+      :key="key"
+    >
+      {{ key }}
+    </b-badge> -->
   </div>
 </template>
 
@@ -20,6 +28,12 @@ export default {
   },
   computed: {
     datacollection () {
+      // if(Object.keys(this.pricesDict).length == 0) {
+      //   return {
+      //     labels: null,
+      //     datasets: null
+      //   }
+      // }
       let datasets = []
       let labels = []
       for (const [key, prices] of Object.entries(this.pricesDict)) {
@@ -50,7 +64,7 @@ export default {
   methods: {
     getRandomInt () {
       return Math.floor(Math.random() * (50 - 5 + 1)) + 5
-    }
+    },
   },
 }
 </script>

@@ -1,6 +1,14 @@
 <template>
   <div>
     <Chart :pricesDict="pricesDict"/>
+    <b-badge
+      @click="deleteRow(key)"
+      style="background-color: black; cursor:pointer"
+      v-for="prices, key in pricesDict"
+      :key="key"
+    >
+      {{ key }}
+    </b-badge>
     <FormSelect 
       @condition="getPrices" 
       :countries="countries" 
@@ -8,7 +16,7 @@
       v-for="selectedFood in selectedFoods" 
       :key="selectedFood.item_code"
     />
-    <Table :tableRows="tableRows" @row-selected="rowSelected"/>
+    <Table :foods="foods" @row-selected="rowSelect"/>
   </div>
 </template>
 
@@ -29,22 +37,26 @@ export default {
   },
   data() {
     return {
-      tableRows: Object,
+      foods: [],
       pricesDict: {},
       selectedFoods: [],
       countries: []
     }
   },
   methods: {
-    rowSelected(rows) {
+    deleteRow (row) {
+      let newPricesDict = Object.assign({}, this.pricesDict)
+      delete newPricesDict[row]
+      this.pricesDict = newPricesDict
+    },
+    rowSelect(rows) {
       const foodIds = rows.map(x => x['item_code'])
       this.getFoodDetail(foodIds)
     },
     getTable() {
-      axios.get(`${SERVER_URL}/prices/foods/`)
+      axios.get(`${SERVER_URL}/prices/food-table/`)
         .then((res) => {
-          console.log(res.data)
-          this.tableRows = res.data
+          this.foods = res.data
         })
     },
     getFoodDetail(foodIds) {

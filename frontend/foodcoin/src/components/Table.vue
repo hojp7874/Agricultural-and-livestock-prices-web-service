@@ -1,14 +1,14 @@
 <template>
   <div>
     <b-table
-      :items="tableRows"
+      :items="foods"
       :fields="fields"
       :sort-by.sync="sortBy"
       :sort-desc.sync="sortDesc"
       striped
       hover
       selectable
-      @row-selected="getFoodInfo"
+      @row-selected="rowSelected"
     ></b-table>
   </div>
 </template>
@@ -22,19 +22,16 @@ export default {
       sortDesc: false,
       fields: [
         // { key: 'item_code', sortable: true },
-        { key: 'food',      sortable: true },
+        { key: 'food', sortable: true },
       ],
     }
   },
-  props: ['tableRows'],
+  props: ['foods'],
   methods: {
-    getFoodInfo (items) {
-      this.$emit('row-selected', items)
+    rowSelected (rows) {
+      this.$emit('row-selected', rows)
     }
   },
-  mounted() {
-
-  }
 }
 </script>
 
