@@ -37,8 +37,9 @@ export default {
       let datasets = []
       let labels = []
       for (const [key, prices] of Object.entries(this.pricesDict)) {
+        let color = "#" + Math.round(Math.random() * 0xffffff).toString(16)
         let data = []
-        // let labels = []
+        labels = []
         for (let j = 0; j < prices.length; j++) {
           const price = prices[j]
           data.push(price.price)
@@ -46,7 +47,7 @@ export default {
         }
         const dataset = {
           label: key,
-          borderColor: 'rgba(255,0,0,255)',
+          borderColor: color,
           borderWidth: 1,
           radius: 0,
           backgroundColor: 'rgba(0,0,0,0)',

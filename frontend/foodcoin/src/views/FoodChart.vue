@@ -1,22 +1,29 @@
 <template>
   <div>
-    <Chart :pricesDict="pricesDict"/>
-    <b-badge
-      @click="deleteRow(key)"
-      style="background-color: black; cursor:pointer"
-      v-for="prices, key in pricesDict"
-      :key="key"
-    >
-      {{ key }}
-    </b-badge>
-    <FormSelect 
-      @condition="getPrices" 
-      :countries="countries" 
-      :selectedFood="selectedFood" 
-      v-for="selectedFood in selectedFoods" 
-      :key="selectedFood.item_code"
-    />
-    <Table :foods="foods" @row-selected="rowSelect"/>
+    <b-container class="d-flex justify-content-between">
+      <b-col cols=9>
+        <Chart :pricesDict="pricesDict"/>
+        <b-badge
+          @click="deleteRow(key)"
+          style="background-color: #5555ff; cursor:pointer"
+          class="mx-1"
+          v-for="prices, key in pricesDict"
+          :key="key"
+        >
+          {{ key }}
+        </b-badge>
+        <FormSelect 
+          @condition="getPrices" 
+          :countries="countries" 
+          :selectedFood="selectedFood" 
+          v-for="selectedFood in selectedFoods" 
+          :key="selectedFood.item_code"
+        />
+      </b-col>
+      <b-col>
+        <Table :foods="foods" @row-selected="rowSelect"/>
+      </b-col>
+    </b-container>
   </div>
 </template>
 
@@ -89,6 +96,10 @@ export default {
       }
       axios.get(`${SERVER_URL}/prices/foods/${foodId}/prices/`, {params: {'condition': params}})
         .then(res => {
+          if (res.data.length == 0) {
+            window.alert(`해당 조건에 맞는 '${condition.foodName}' 데이터가 없습니다.`)
+            return
+          }
           for (const [key, prices] of Object.entries(this.pricesDict)) {
             pricesDict[key] = prices
           }

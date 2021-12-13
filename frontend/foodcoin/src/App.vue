@@ -7,9 +7,7 @@
           <b-navbar-brand class="mx-3">Food Coin</b-navbar-brand>
           <b-collapse id="nav-text-collapse" is-nav>
             <b-navbar-nav>
-              <router-link to="/" class="mx-2">Home</router-link>
-              <router-link to="/food-chart" class="mx-2">FoodChart</router-link>
-              <router-link to="/about" class="mx-2">About</router-link>
+              <router-link to="" class="mx-2">FoodChart</router-link>
             </b-navbar-nav>
           </b-collapse>
         </b-navbar>
