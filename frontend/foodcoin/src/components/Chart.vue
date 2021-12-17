@@ -1,14 +1,6 @@
 <template>
   <div class="small">
     <line-chart :chart-data="datacollection"></line-chart>
-    <!-- <b-badge
-      @click="deleteRow(key)"
-      style="background-color: black; cursor:pointer"
-      v-for="prices, key in pricesDict"
-      :key="key"
-    >
-      {{ key }}
-    </b-badge> -->
   </div>
 </template>
 
@@ -28,22 +20,32 @@ export default {
   },
   computed: {
     datacollection () {
-      // if(Object.keys(this.pricesDict).length == 0) {
-      //   return {
-      //     labels: null,
-      //     datasets: null
-      //   }
-      // }
       let datasets = []
       let labels = []
+      let minStartDate = new Date()
+      for (const prices of Object.values(this.pricesDict)) {
+        const startDate = new Date(prices[0].date.split('-').map(Number))
+        if (new Date(prices[0].date.split('-').map(Number)) < minStartDate) {
+          minStartDate = startDate
+        }
+      }
+      let endDate = new Date()
+      let date = minStartDate
+      while (date < endDate) {
+        labels.push(new Date(date).toDateString())
+        date.setDate(date.getDate() + 1)
+      }
       for (const [key, prices] of Object.entries(this.pricesDict)) {
         let color = "#" + Math.round(Math.random() * 0xffffff).toString(16)
         let data = []
-        labels = []
+        let i = 0
         for (let j = 0; j < prices.length; j++) {
           const price = prices[j]
-          data.push(price.price)
-          labels.push(price.date)
+          const date = new Date(prices[j].date.split('-').map(Number))
+          while (i < labels.length && date > new Date(labels[i])) {
+            data.push(price.price)
+            i++
+          }
         }
         const dataset = {
           label: key,
