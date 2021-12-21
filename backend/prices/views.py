@@ -1,6 +1,9 @@
 # 표준 라이브러리 모듈
-import asyncio, datetime, json, math
+import asyncio
+import datetime
 from copy import deepcopy
+import json
+import math
 from dateutil.relativedelta import relativedelta
 
 # 서드 파티 모듈
@@ -25,7 +28,7 @@ from .models import Country, Food, ItemCategory, Kind, Price, FoodComment, Produ
 from .modules import Scrap, duration, logging
 
 
-class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 레거시 됨.
+class InitDatabase(APIView):
     """
     현재 (food, all) mode 불가.
 
@@ -59,26 +62,29 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
         self.kind_code_form['품종코드'] = kind_codes
         self.rank_code_form = self.rank_code_form.dropna(
             axis=0, subset=['등급코드(p_productrankcode)'])
-        rank_codes = self.rank_code_form['등급코드(p_productrankcode)'
-                                        ].astype(int).astype(str)
+        rank_codes = self.rank_code_form[
+            '등급코드(p_productrankcode)'
+            ].astype(int).astype(str)
         rank_codes = rank_codes.apply(lambda x: "{:0>2s}".format(x))
         self.rank_code_form['등급코드(p_productrankcode)'] = rank_codes
-
         self.scrap = Scrap()
 
     @duration
     def init_country(self):
-        countries = {'서울': 1101, '부산': 2100, '대구': 2200,
-                     '인천': 2300, '광주': 2401, '대전': 2501, 
-                     '울산': 2601, '세종': 2701, '수원': 3111,
-                     '의정부': 3113,'용인': 3145, '춘천': 3211, 
-                     '강릉': 3214, '청주': 3311, '전주': 3511,
-                     '순천': 3613, '포항': 3711, '안동': 3714,
-                     '창원': 3814, '제주': 3911}
+        countries = {
+            '서울': 1101, '부산': 2100, '대구': 2200,
+            '인천': 2300, '광주': 2401, '대전': 2501, 
+            '울산': 2601, '세종': 2701, '수원': 3111,
+            '의정부': 3113,'용인': 3145, '춘천': 3211, 
+            '강릉': 3214, '청주': 3311, '전주': 3511,
+            '순천': 3613, '포항': 3711, '안동': 3714,
+            '창원': 3814, '제주': 3911
+            }
         
         for country, country_code in countries.items():
-            serializer = CountrySerializer(data={'country_code': country_code,
-                                                 'country': country})
+            serializer = CountrySerializer(
+                data={'country_code': country_code,
+                      'country': country})
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
 
@@ -120,12 +126,10 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
             if Food.objects.filter(item_code=item_code):
                 continue
 
-            wholesale_unit = (
-                None if math.isnan(wholesale_val)
-                else str(wholesale_val) + wholesale_unit)
-            retail_unit = (
-                None if math.isnan(retail_val)
-                else str(retail_val) + retail_unit)
+            wholesale_unit = (None if math.isnan(wholesale_val)
+                              else str(wholesale_val) + wholesale_unit)
+            retail_unit = (None if math.isnan(retail_val)
+                           else str(retail_val) + retail_unit)
             if wholesale_unit == retail_unit == None:
                 continue
 
@@ -193,16 +197,14 @@ class InitDatabase(APIView): # Google Image CSS 스타일 변경으로 인해 �
         product_ranks = ProductRank.objects.values_list('product_rank_code')
         product_clss = ProductCls.objects.values_list('product_cls_code')
 
-        price_conditions = [PriceCondition(
-            kind_id=kind[0],
-            country_id=country[0],
-            product_rank_id=product_rank[0],
-            product_cls_id=product_cls[0]
-        )
-        for kind in kinds
-        for country in countries
-        for product_rank in product_ranks
-        for product_cls in product_clss]
+        price_conditions = [PriceCondition(kind_id=kind[0],
+                                           country_id=country[0],
+                                           product_rank_id=product_rank[0],
+                                           product_cls_id=product_cls[0])
+                            for kind in kinds
+                            for country in countries
+                            for product_rank in product_ranks
+                            for product_cls in product_clss]
 
         PriceCondition.objects.bulk_create(price_conditions,
                                            ignore_conflicts=False)
@@ -325,11 +327,9 @@ class DataPipeline(APIView):
                 price = int(price_value)
                 date = item['yyyy'] + '-' + item['regday'].replace('/', '-')
 
-                data_list.append(Price(
-                    price=price,
-                    date=date,
-                    condition=price_condition
-                ))
+                data_list.append(Price(price=price,
+                                 date=date,
+                                 condition=price_condition))
 
         if data_list:
             try:
@@ -351,7 +351,7 @@ class DataPipeline(APIView):
         """
 
         ## KAMIS API BLOCKED: 1년 내의 데이터만 요청 가능
-        # date_list = []
+        date_list = []
         # sday = datetime.date(1996,1,1)
         # delta = relativedelta(years=1, days=-1)
         # eday = sday + delta
@@ -359,9 +359,9 @@ class DataPipeline(APIView):
         #     date_list.append((sday.__str__(), eday.__str__()))
         #     sday += delta
         #     eday += delta
-        date_list = [(
-            datetime.date.today() - relativedelta(years=1),
-            datetime.date.today())]
+        date_list.append(
+            (datetime.date.today() - relativedelta(years=1),
+             datetime.date.today()))
 
         price_conditions = PriceCondition.objects.all()
 
@@ -377,15 +377,15 @@ class DataPipeline(APIView):
 
         for price_condition in price_conditions:
             
-            params_list = [{
-                'p_itemcode': price_condition.kind.food_id,
-                'p_kindcode': price_condition.kind.kind_code,
-                'p_productrankcode': price_condition.product_rank_id,
-                'p_productclscode': price_condition.product_cls_id,
-                'p_countrycode': price_condition.country_id,
-                'p_startday': startday,
-                'p_endday': endday
-            } for startday, endday in date_list]
+            params_list = [
+                {'p_itemcode': price_condition.kind.food_id,
+                 'p_kindcode': price_condition.kind.kind_code,
+                 'p_productrankcode': price_condition.product_rank_id,
+                 'p_productclscode': price_condition.product_cls_id,
+                 'p_countrycode': price_condition.country_id,
+                 'p_startday': startday,
+                 'p_endday': endday}
+                for startday, endday in date_list]
             
             responses = asyncio.run(
                 self.scrap.get_all_kamis_data(params_list))
@@ -444,7 +444,8 @@ def prices_conditions(request, item_code):
     exist_price_conditions = list(filter(
         lambda x: x.prices.exists(), price_conditions))
 
-    prices_condition_list = Price.objects.filter(food=item_code
+    prices_condition_list = Price.objects\
+        .filter(food=item_code
         ).values('kind', 'product_rank', 'product_cls', 'country'
         ).annotate(Count('id')
         ).values('food', 'kind', 'product_rank', 'product_cls', 'country')
